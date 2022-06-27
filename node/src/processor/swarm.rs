@@ -5,8 +5,6 @@ use libp2p::gossipsub::MessageId;
 use libp2p::gossipsub::GossipsubMessage;
 use libp2p::PeerId;
 use libp2p::identity;
-use env_logger::Env;
-use env_logger::Builder;
 use libp2p;
 use libp2p::gossipsub;
 use libp2p::gossipsub::Topic;
@@ -16,7 +14,6 @@ use std::error::Error;
 use std::hash::{Hash, Hasher};
 
 pub async fn make_swarm(cfg: flags::Config) -> Result<(gossipsub::IdentTopic, libp2p::Swarm<gossipsub::Gossipsub>), Box<dyn Error>> {
-    Builder::from_env(Env::default().default_filter_or(cfg.log_level.clone())).init();
     let local_key = identity::Keypair::generate_ed25519();
     let local_peer_id = PeerId::from(local_key.public());
     println!("Local peer id: {:?}", local_peer_id);

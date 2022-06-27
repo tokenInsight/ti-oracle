@@ -1,5 +1,5 @@
 use async_std::io;
-use env_logger::{};
+use env_logger::{Builder, Env};
 use futures::{prelude::*, select};
 use libp2p::gossipsub::GossipsubEvent;
 use libp2p::{swarm::SwarmEvent, Multiaddr};
@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
         .get_matches();
     let cfg = flags::Config::new(opts.value_of("config").unwrap())?;
-
+    Builder::from_env(Env::default().default_filter_or(cfg.log_level.clone())).init();
     let (topic, mut swarm) = swarm::make_swarm(cfg).await?;
     // Listen on all interfaces and whatever port the OS assigns
     swarm

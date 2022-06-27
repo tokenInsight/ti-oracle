@@ -18,19 +18,33 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .help("Configuration file path")
                 .takes_value(true)
                 .default_value("./config/node.yaml"),
+        ).arg(
+            clap::Arg::with_name("peers")
+                .short("p")
+                .long("peers")
+                .help("set peers of this node")
+                .takes_value(true)
+                .default_value(""),
         )
         .get_matches();
-    let cfg = flags::Config::new(opts.value_of("config").unwrap())?;
+    let peers = opts.value_of("peers").unwrap().split(",");
+    let mut cfg = flags::Config::new(opts.value_of("config").unwrap())?;
+    for peer_node in peers {
+        cfg.peers.push(peer_node.to_string());
+    }
     Builder::from_env(Env::default().default_filter_or(cfg.log_level.clone())).init();
-    let (topic, mut swarm) = swarm::make_swarm(cfg).await?;
+    let (topic, mut swarm) = swarm::make_swarm(&cfg).await?;
     // Listen on all interfaces and whatever port the OS assigns
     swarm
         .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())
         .unwrap();
 
-    // Reach out to another node if specified
-    if let Some(to_dial) = std::env::args().nth(1) {
-        let address: Multiaddr = to_dial.parse().expect("User to provide valid address.");
+    // Reach out to peers
+    for peer_node in cfg.peers {
+        if peer_node.len() == 0 {
+            continue;
+        }
+        let address: Multiaddr = peer_node.parse().expect("User to provide valid address.");
         match swarm.dial(address.clone()) {
             Ok(_) => println!("Dialed {:?}", address),
             Err(e) => println!("Dial {:?} failed: {:?}", address, e),

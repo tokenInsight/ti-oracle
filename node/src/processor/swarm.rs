@@ -13,7 +13,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::error::Error;
 use std::hash::{Hash, Hasher};
 
-pub async fn make_swarm(cfg: flags::Config) -> Result<(gossipsub::IdentTopic, libp2p::Swarm<gossipsub::Gossipsub>), Box<dyn Error>> {
+pub async fn make_swarm(cfg: &flags::Config) -> Result<(gossipsub::IdentTopic, libp2p::Swarm<gossipsub::Gossipsub>), Box<dyn Error>> {
     let local_key = identity::Keypair::generate_ed25519();
     let local_peer_id = PeerId::from(local_key.public());
     println!("Local peer id: {:?}", local_peer_id);
@@ -39,18 +39,8 @@ pub async fn make_swarm(cfg: flags::Config) -> Result<(gossipsub::IdentTopic, li
         let mut gossipsub: gossipsub::Gossipsub =
             gossipsub::Gossipsub::new(MessageAuthenticity::Signed(local_key), gossipsub_config)
                 .expect("Correct configuration");
-
         // subscribes to our topic
         gossipsub.subscribe(&topic).unwrap();
-
-        // add an explicit peer if one was provided
-        if let Some(explicit) = std::env::args().nth(2) {
-            let explicit = explicit.clone();
-            match explicit.parse() {
-                Ok(id) => gossipsub.add_explicit_peer(&id),
-                Err(err) => println!("Failed to parse explicit peer id: {:?}", err),
-            }
-        }
         // build the swarm
         libp2p::Swarm::new(transport, gossipsub, local_peer_id)
     };

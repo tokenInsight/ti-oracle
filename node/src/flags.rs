@@ -1,4 +1,5 @@
 use serde_derive::Deserialize;
+use std::vec::Vec;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -7,6 +8,8 @@ pub struct Config {
     pub eth_rpc_url: String,
     pub price_topic: String,
     pub network_topic: String,
+    pub contract_address: String,
+    pub peers: Vec<String>,
 }
 
 impl Config {

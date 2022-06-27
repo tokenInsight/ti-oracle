@@ -61,10 +61,12 @@ contract ContractTest is Test {
         tiOracle.feedPrice("eth", 12345);
         assertTrue(!tiOracle.isMyTurn());
         vm.stopPrank();
-        //node a can only feed 5 times, and then it is nodeB's turn now
+        //nodeA can only feed 5 times, and then it is nodeB's turn now
         vm.startPrank(nodeB);
         assertTrue(tiOracle.isMyTurn());
-        tiOracle.feedPrice("eth", 12345);
+        tiOracle.feedPrice("eth", 1234567);
         vm.stopPrank();
+        TIOracle.PriceInfo memory ethPrice = tiOracle.queryPrice("eth");
+        assertEq(ethPrice.tiPrice, 1234567);
     }
 }

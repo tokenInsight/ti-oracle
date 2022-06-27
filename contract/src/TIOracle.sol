@@ -11,7 +11,7 @@ contract TIOracle {
         uint256 timestamp;
     }
     // coin name => price, with 8 digits of precision
-    mapping(string => PriceInfo) public lastPrice;
+    mapping(string => PriceInfo) lastPrice;
     // last round
     uint256 public lastRound;
     // count
@@ -37,6 +37,11 @@ contract TIOracle {
     function crossValidate(uint256 tiPrice, uint256 dexPrice) internal pure returns (bool) {
         // TODO do cross validation
         return tiPrice > 0 && dexPrice > 0;
+    }
+
+    //queryPrice get the last price feeded of certain coin
+    function queryPrice(string memory coinName) public view returns (PriceInfo memory) {
+        return lastPrice[coinName];
     }
 
     //  decide next valid node to feed price, in a round-robbin way

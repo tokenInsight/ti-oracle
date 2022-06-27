@@ -20,5 +20,8 @@ lazy_static = "1.2"
 async-std = { version = "1.6.2", features = ["attributes"] }
 async-trait = "0.1"
 env_logger = "0.9.0"
-clap = {version = "3.1.6", features = ["derive"]}
+clap = "2.33.3"
 tokio = { version = "1.15", features = ["io-util", "io-std", "macros", "rt", "rt-multi-thread"] }
+config = "0.11.0"
+serde = "1.0.126"
+serde_derive = "1.0.126"

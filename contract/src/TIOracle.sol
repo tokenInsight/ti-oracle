@@ -121,6 +121,7 @@ contract TIOracle {
                 if (nodes[i] == rmNode) {
                     nodes[i] = nodes[nodes.length-1];
                     nodes.pop();
+                    delete kickProposals[rmNode];
                     emit NodeKicked(rmNode);
                     break;
                 }

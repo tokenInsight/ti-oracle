@@ -1,19 +1,21 @@
-use libp2p::gossipsub::MessageAuthenticity;
-use libp2p::gossipsub::ValidationMode;
-use std::time::Duration;
-use libp2p::gossipsub::MessageId;
-use libp2p::gossipsub::GossipsubMessage;
-use libp2p::PeerId;
-use libp2p::identity;
+use crate::flags;
 use libp2p;
 use libp2p::gossipsub;
+use libp2p::gossipsub::GossipsubMessage;
+use libp2p::gossipsub::MessageAuthenticity;
+use libp2p::gossipsub::MessageId;
 use libp2p::gossipsub::Topic;
-use crate::flags;
+use libp2p::gossipsub::ValidationMode;
+use libp2p::identity;
+use libp2p::PeerId;
 use std::collections::hash_map::DefaultHasher;
 use std::error::Error;
 use std::hash::{Hash, Hasher};
+use std::time::Duration;
 
-pub async fn make_swarm(cfg: &flags::Config) -> Result<(gossipsub::IdentTopic, libp2p::Swarm<gossipsub::Gossipsub>), Box<dyn Error>> {
+pub async fn make_swarm(
+    cfg: &flags::Config,
+) -> Result<(gossipsub::IdentTopic, libp2p::Swarm<gossipsub::Gossipsub>), Box<dyn Error>> {
     let local_key = identity::Keypair::generate_ed25519();
     let local_peer_id = PeerId::from(local_key.public());
     println!("Local peer id: {:?}", local_peer_id);

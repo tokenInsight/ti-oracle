@@ -1,8 +1,9 @@
 listen_address : /ip4/0.0.0.0/tcp/0
 log_level: info
-eth_rpc_url: http://127.0.0.1:8545
+eth_rpc_url: https://polygon-rpc.com
 price_topic: ti-crypto-price
 network_topic: ti-network
-contract_address: 0xFFFFFFFF
+contract_address: 0x58ce845a648597e6fb38993f7b2d84f5decfc523
+private_key: 4bbbf85ce3
 peers:
   - ""

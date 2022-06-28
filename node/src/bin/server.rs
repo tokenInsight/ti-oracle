@@ -1,14 +1,14 @@
-use async_std::io;
-use env_logger::{Builder, Env};
-use futures::{prelude::*, select};
-use libp2p::gossipsub::GossipsubEvent;
-use libp2p::{swarm::SwarmEvent, Multiaddr};
-use std::error::Error;
 use clap::{app_from_crate, crate_authors, crate_description, crate_name, crate_version};
+use env_logger::{Builder, Env};
+use libp2p::Multiaddr;
+use std::error::Error;
+use std::time::Duration;
+use ti_node::fetcher;
 use ti_node::flags;
+use ti_node::processor::gossip;
 use ti_node::processor::swarm;
 
-#[async_std::main]
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let opts = app_from_crate!()
         .arg(
@@ -18,7 +18,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .help("Configuration file path")
                 .takes_value(true)
                 .default_value("./config/node.yaml"),
-        ).arg(
+        )
+        .arg(
             clap::Arg::with_name("peers")
                 .short("p")
                 .long("peers")
@@ -50,37 +51,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Err(e) => println!("Dial {:?} failed: {:?}", address, e),
         };
     }
-
-    // Read full lines from stdin
-    let mut stdin = io::BufReader::new(io::stdin()).lines().fuse();
-
-    // Kick it off
+    tokio::task::spawn(async move {
+        gossip::process_p2p_message(swarm, topic).await;
+    });
+    let eth_stub =
+        fetcher::eth::new(cfg.private_key, cfg.eth_rpc_url, cfg.contract_address).await?;
     loop {
-        select! {
-            line = stdin.select_next_some() => {
-                if let Err(e) = swarm
-                    .behaviour_mut()
-                    .publish(topic.clone(), line.expect("Stdin not to close").as_bytes())
-                {
-                    println!("Publish error: {:?}", e);
-                }
-            },
-            event = swarm.select_next_some() => match event {
-                SwarmEvent::Behaviour(GossipsubEvent::Message {
-                    propagation_source: peer_id,
-                    message_id: id,
-                    message,
-                }) => println!(
-                    "Got message: {} with id: {} from peer: {:?}",
-                    String::from_utf8_lossy(&message.data),
-                    id,
-                    peer_id
-                ),
-                SwarmEvent::NewListenAddr { address, .. } => {
-                    println!("Listening on {:?}", address);
-                }
-                _ => {}
+        match eth_stub.is_my_turn().call().await {
+            Ok(is_my_turn) => {
+                println!("is my turn to feed? {}", is_my_turn);
+            }
+            Err(err) => {
+                println!("call contract error: {}", err);
             }
         }
+        tokio::time::sleep(Duration::from_millis(1000)).await;
     }
 }

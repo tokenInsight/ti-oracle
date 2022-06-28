@@ -10,7 +10,7 @@ contract ContractTest is Test {
     address nodeB;
     address nodeC;
     function setUp() public {
-        tiOracle = new TIOracle();
+        tiOracle = new TIOracle(5);
         nodeA = address(0x5A);
         nodeB = address(0x5B);
         nodeC = address(0x5C);
@@ -22,7 +22,7 @@ contract ContractTest is Test {
         tiOracle.addNode(nodeC);
         for(uint i=0;i<15;i++) {
             address node = tiOracle.decideValidNode(i);
-            emit log_named_address("node",node);
+            //emit log_named_address("node",node);
             if(i%3 == 0) {
                 assertEq(node, nodeA);
             }
@@ -40,7 +40,7 @@ contract ContractTest is Test {
         tiOracle.removeNode(nodeB);
         for(uint i=0;i<12;i++) {
             address node = tiOracle.decideValidNode(i);
-            emit log_named_address("node",node);
+            //emit log_named_address("node",node);
             if(i%2 == 0) {
                 assertEq(node, nodeA);
             }
@@ -69,4 +69,16 @@ contract ContractTest is Test {
         TIOracle.PriceInfo memory ethPrice = tiOracle.queryPrice("eth");
         assertEq(ethPrice.tiPrice, 1234567);
     }
+
+    function testKickNode() public {
+        Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
+        testRoundOwner();
+        vm.prank(nodeA);
+        tiOracle.kickNode(nodeC);
+        vm.prank(nodeB);
+        tiOracle.kickNode(nodeC);
+        vm.prank(nodeC);
+        tiOracle.kickNode(nodeC);
+    }
+
 }

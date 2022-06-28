@@ -1,4 +1,4 @@
-listen_address : /ip4/0.0.0.0/tcp/8012
+listen_address : /ip4/0.0.0.0/tcp/0
 log_level: info
 eth_rpc_url: http://127.0.0.1:8545
 price_topic: ti-crypto-price

@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (topic, mut swarm) = swarm::make_swarm(&cfg).await?;
     // Listen on all interfaces and whatever port the OS assigns
     swarm
-        .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())
+        .listen_on(cfg.listen_address.clone().parse().unwrap())
         .unwrap();
 
     // Reach out to peers

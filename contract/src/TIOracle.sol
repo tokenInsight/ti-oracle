@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
-
 // TIOracle is an oracle that provides reliable prices in multiple currencies
 contract TIOracle {
     // PriceInfo is a single piece of price information,
@@ -10,6 +9,10 @@ contract TIOracle {
         uint256 dexPrice;
         uint256 timestamp;
     }
+    event NodeAdded(address newNode);
+    event NodeRemoved(address removedNode);
+    event NodeKicked(address removeNode);
+    event PriceFeed(PriceInfo info);
     // coin name => price, with 8 digits of precision
     mapping(string => PriceInfo) lastPrice;
     // last round
@@ -22,9 +25,12 @@ contract TIOracle {
     address[] public nodes;
     // count per round
     uint256 public countPerRound;
-    constructor() {
+    // proposals of deleteing nodes
+    mapping(address => address[]) public kickProposals;
+
+    constructor(uint256 feedCountPerRound) {
         admin = msg.sender;
-        countPerRound = 5;
+        countPerRound = feedCountPerRound;
     }
 
     // get the current price in Uniswap, and the quote should be usdc
@@ -70,12 +76,14 @@ contract TIOracle {
         require(crossValidate(price, dexPrice), "This price deviates too much from Uniswap and is rejected for submission");
         priceInfo.dexPrice = dexPrice;
         lastPrice[coinName] = priceInfo;
+        emit PriceFeed(priceInfo);
     }
 
-    // addNode add new trasmission node
+    // addNode: vote to add new trasmission node
     function addNode(address newNode) public {
         require(msg.sender == admin, "invalid caller to add new node");
         nodes.push(newNode);
+        emit NodeAdded(newNode);
     }
 
     // removeNode remove trasmission node from whitelist
@@ -85,7 +93,37 @@ contract TIOracle {
             if (nodes[i] == rmNode) {
                 nodes[i] = nodes[nodes.length-1];
                 nodes.pop();
+                emit NodeRemoved(rmNode);
                 break;
+            }
+        }
+    }
+
+    // kickNode remove trasmission node from whitelist
+    function kickNode(address rmNode) public {
+        //check duplicated vote
+        for (uint256 i=0; i<kickProposals[rmNode].length; i++) {
+            require(kickProposals[rmNode][i] != msg.sender, "duplciated vote");
+        }
+        bool valid_sender = false;
+        for (uint256 i=0; i<nodes.length;i++) {
+            if (nodes[i] == msg.sender) {
+                valid_sender = true;
+                break;
+            }
+        }
+        require(valid_sender, "invalid node to kick others");
+        // vote to kick
+        kickProposals[rmNode].push(msg.sender);
+        // >2/3 agree
+        if (nodes.length * 2 / 3 < kickProposals[rmNode].length) {
+            for(uint i=0; i<nodes.length; i++) {
+                if (nodes[i] == rmNode) {
+                    nodes[i] = nodes[nodes.length-1];
+                    nodes.pop();
+                    emit NodeKicked(rmNode);
+                    break;
+                }
             }
         }
     }

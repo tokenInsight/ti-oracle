@@ -54,17 +54,21 @@ contract ContractTest is Test {
         Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
         testRoundOwner();
         vm.startPrank(nodeA);
-        tiOracle.feedPrice("btc", 123);
-        tiOracle.feedPrice("eth", 12345);
-        tiOracle.feedPrice("eth", 12345);
-        tiOracle.feedPrice("eth", 12345);
-        tiOracle.feedPrice("eth", 12345);
+        tiOracle.feedPrice("btc", 123, 1);
+        tiOracle.feedPrice("eth", 12345, 2);
+        tiOracle.feedPrice("eth", 12345, 2);
+        tiOracle.feedPrice("eth", 12345, 2);
+        tiOracle.feedPrice("eth", 12345, 2);
         assertTrue(!tiOracle.isMyTurn());
-        vm.stopPrank();
         //nodeA can only feed 5 times, and then it is nodeB's turn now
+        //Here, we cheat to make it timeout, so that any nodes could feed
+        vm.warp(block.timestamp + 301);
+        assertTrue(tiOracle.isMyTurn());
+        vm.stopPrank();
+
         vm.startPrank(nodeB);
         assertTrue(tiOracle.isMyTurn());
-        tiOracle.feedPrice("eth", 1234567);
+        tiOracle.feedPrice("eth", 1234567, 2);
         vm.stopPrank();
         TIOracle.PriceInfo memory ethPrice = tiOracle.queryPrice("eth");
         assertEq(ethPrice.tiPrice, 1234567);

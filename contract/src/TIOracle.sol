@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
+// import "forge-std/Test.sol";
 // TIOracle is an oracle that provides reliable prices in multiple currencies
 contract TIOracle {
     // PriceInfo is a single piece of price information,
     // which includes TI's quotation, on-chain DEX quotation, and the timestamp of price feeding
     struct PriceInfo {
         uint256 tiPrice;
-        uint256 dexPrice;
         uint256 timestamp;
+        uint256 precision;
     }
     event NodeAdded(address newNode);
     event NodeRemoved(address removedNode);
-    event NodeKicked(address removeNode);
-    event PriceFeed(PriceInfo info);
+    event NodeKicked(address removedNode);
+    event PriceFeed(uint256 round, PriceInfo info);
     // coin name => price, with 8 digits of precision
     mapping(string => PriceInfo) lastPrice;
     // last round
@@ -38,18 +39,6 @@ contract TIOracle {
         maxDelay = timeout;
     }
 
-    // get the current price in Uniswap, and the quote should be usdc
-    function estimateDexPrice(string memory coinName) public view returns (uint256) {
-        //TODO call uniswap to estimate
-        return 123;
-    }
-
-    // compare two prices from TI and Uniswap
-    function crossValidate(uint256 tiPrice, uint256 dexPrice) internal pure returns (bool) {
-        // TODO do cross validation
-        return tiPrice > 0 && dexPrice > 0;
-    }
-
     //queryPrice get the last price feeded of certain coin
     function queryPrice(string memory coinName) public view returns (PriceInfo memory) {
         return lastPrice[coinName];
@@ -64,28 +53,35 @@ contract TIOracle {
 
     function isMyTurn() public view returns (bool)  {
         bool timeout = lastTimestamp >0 && ((block.timestamp - lastTimestamp) > maxDelay);
-        return decideValidNode(lastRound) == msg.sender || timeout;
+        //console.log("timeout", timeout);
+        if (timeout) { //if timeout, any nodes in the list can feed price
+            for(uint i=0;i<nodes.length;i++) {
+                if (msg.sender == nodes[i]) {
+                    return true;
+                }
+            }
+        }
+        //in case of not timeout, scheduling should be in a way of round-robbin
+        return decideValidNode(lastRound) == msg.sender;
     }
 
     // feedPrice is called by transmission nodes to feed price of cryptos
-    function feedPrice(string memory coinName, uint256 price) public {
+    function feedPrice(string memory coinName, uint256 price, uint256 precision) public {
         require(isMyTurn(), "invalid transmission node");
-        ++feedCount;
-        if (feedCount % countPerRound == 0) {
-            ++lastRound;
-        }
         PriceInfo memory priceInfo;
         priceInfo.tiPrice = price;
         priceInfo.timestamp = block.timestamp;
-        uint256 dexPrice = estimateDexPrice(coinName);
-        require(crossValidate(price, dexPrice), "This price deviates too much from Uniswap and is rejected for submission");
-        priceInfo.dexPrice = dexPrice;
+        priceInfo.precision = precision;
         lastPrice[coinName] = priceInfo;
         lastTimestamp = block.timestamp;
-        emit PriceFeed(priceInfo);
+        emit PriceFeed(lastRound, priceInfo);
+        ++feedCount;
+        if (feedCount % countPerRound == 0) {
+            ++lastRound; //next round
+        }
     }
 
-    // addNode: vote to add new trasmission node
+    // addNode: add new trasmission node
     function addNode(address newNode) public {
         require(msg.sender == admin, "invalid caller to add new node");
         nodes.push(newNode);

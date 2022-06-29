@@ -10,7 +10,7 @@ contract ContractTest is Test {
     address nodeB;
     address nodeC;
     function setUp() public {
-        tiOracle = new TIOracle(5);
+        tiOracle = new TIOracle(5, 300); //5 feed each round, max delay 300 seconds
         nodeA = address(0x5A);
         nodeB = address(0x5B);
         nodeC = address(0x5C);

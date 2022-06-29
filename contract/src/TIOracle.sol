@@ -17,6 +17,8 @@ contract TIOracle {
     mapping(string => PriceInfo) lastPrice;
     // last round
     uint256 public lastRound;
+    // last timestamp
+    uint256 public lastTimestamp;
     // count
     uint256 public feedCount;
     // owner of the contract
@@ -27,10 +29,13 @@ contract TIOracle {
     uint256 public countPerRound;
     // proposals of deleteing nodes
     mapping(address => address[]) public kickProposals;
+    // max delay
+    uint256 maxDelay;
 
-    constructor(uint256 feedCountPerRound) {
+    constructor(uint256 feedCountPerRound, uint256 timeout) {
         admin = msg.sender;
         countPerRound = feedCountPerRound;
+        maxDelay = timeout;
     }
 
     // get the current price in Uniswap, and the quote should be usdc
@@ -58,13 +63,13 @@ contract TIOracle {
     }
 
     function isMyTurn() public view returns (bool)  {
-        return decideValidNode(lastRound) == msg.sender;
+        bool timeout = lastTimestamp >0 && ((block.timestamp - lastTimestamp) > maxDelay);
+        return decideValidNode(lastRound) == msg.sender || timeout;
     }
 
     // feedPrice is called by transmission nodes to feed price of cryptos
     function feedPrice(string memory coinName, uint256 price) public {
-        address validNode = decideValidNode(lastRound);
-        require(msg.sender == validNode, "invalid transmission node");
+        require(isMyTurn(), "invalid transmission node");
         ++feedCount;
         if (feedCount % countPerRound == 0) {
             ++lastRound;
@@ -76,6 +81,7 @@ contract TIOracle {
         require(crossValidate(price, dexPrice), "This price deviates too much from Uniswap and is rejected for submission");
         priceInfo.dexPrice = dexPrice;
         lastPrice[coinName] = priceInfo;
+        lastTimestamp = block.timestamp;
         emit PriceFeed(priceInfo);
     }
 

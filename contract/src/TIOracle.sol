@@ -14,7 +14,7 @@ contract TIOracle {
     event NodeRemoved(address removedNode);
     event NodeKicked(address removedNode);
     event PriceFeed(uint256 round, PriceInfo info);
-    // coin name => price, with 8 digits of precision
+    // coin name => price, with precision & timestamp
     mapping(string => PriceInfo) lastPrice;
     // last round
     uint256 public lastRound;
@@ -28,9 +28,9 @@ contract TIOracle {
     address[] public nodes;
     // count per round
     uint256 public countPerRound;
-    // proposals of deleteing nodes
+    // proposals of kicking nodes
     mapping(address => address[]) public kickProposals;
-    // max delay
+    // max seconds of delay for each time of feeding
     uint256 maxDelay;
 
     constructor(uint256 feedCountPerRound, uint256 timeout) {

@@ -1,6 +1,7 @@
 use clap::{app_from_crate, crate_authors, crate_description, crate_name, crate_version};
 use env_logger::{Builder, Env};
 use libp2p::Multiaddr;
+use std::env;
 use std::error::Error;
 use std::time::Duration;
 use ti_node::fetcher;
@@ -54,10 +55,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tokio::task::spawn(async move {
         gossip::process_p2p_message(swarm, topic).await;
     });
-    let eth_stub =
-        fetcher::eth::new(cfg.private_key, cfg.eth_rpc_url, cfg.contract_address).await?;
+    let mut private_key = cfg.private_key.clone();
+    if private_key.starts_with("$") {
+        let var_name = &private_key[1..private_key.len()];
+        private_key = env::var(var_name).expect("$NODE_PIVATE_KEY not set");
+    }
+    let oracle_stub = fetcher::eth::new(private_key, cfg.eth_rpc_url, cfg.contract_address).await?;
     loop {
-        match eth_stub.is_my_turn().call().await {
+        match oracle_stub.is_my_turn().call().await {
             Ok(is_my_turn) => {
                 println!("is my turn to feed? {}", is_my_turn);
             }

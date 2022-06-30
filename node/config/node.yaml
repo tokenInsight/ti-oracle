@@ -4,6 +4,6 @@ eth_rpc_url: https://polygon-rpc.com
 price_topic: ti-crypto-price
 network_topic: ti-network
 contract_address: 0x58ce845a648597e6fb38993f7b2d84f5decfc523
-private_key: 4bbbf85ce3
+private_key: $NODE_PRIVATE_KEY
 peers:
   - ""

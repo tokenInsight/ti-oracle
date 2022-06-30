@@ -3,14 +3,7 @@ use eyre::Result;
 use std::error::Error;
 use std::{convert::TryFrom, sync::Arc};
 
-abigen!(
-    TIOracle,
-    r#"[
-        function isMyTurn() public view returns (bool)
-        function feedPrice(string memory coinName, uint256 price) public
-        function kickNode(address rmNode) public
-    ]"#
-);
+abigen!(TIOracle, "../contract/out/TIOracle.sol/TIOracle.json");
 
 type OracleStub = TIOracle<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 

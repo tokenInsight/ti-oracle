@@ -73,8 +73,10 @@ contract TIOracle {
 
     // check whether the feeding has enough signatures from > 2/3 nodes
     function checkSignatures(string memory coinName, PeerPriceFeed[] memory peersPrice) view internal returns (bool) {
-        uint signCount = 0;
         uint256 prevPeerPrice = 0;
+        if (nodes.length * 2 / 3 >= peersPrice.length) {
+            return false;
+        }
         for (uint i=0; i<peersPrice.length; i++) {
             PeerPriceFeed memory peer = peersPrice[i];
             require(nodesOffset[peer.peerAddress] > 0, "peer not in valid list");
@@ -82,10 +84,9 @@ contract TIOracle {
             bytes32 digest = keccak256(abi.encodePacked(coinName, peer.price, peer.timestamp));
             address recovered = recoverSign(digest, peer.sig);
             require(recovered == peer.peerAddress, "invalid signature");
-            ++signCount;
             prevPeerPrice = peer.price;
         }
-        return nodes.length * 2 / 3 < signCount ;
+        return true;
     }
 
     // feedPrice is called by leader node to feed price of cryptos, with a price list reported by all peers

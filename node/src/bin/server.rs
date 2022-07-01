@@ -7,10 +7,10 @@ use libp2p::Multiaddr;
 use std::env;
 use std::error::Error;
 use std::time::Duration;
-use ti_node::fetcher;
+use ti_node::chains;
 use ti_node::flags;
 use ti_node::processor::gossip;
-use ti_node::processor::gossip::FeedRequest;
+use ti_node::processor::gossip::ValidateRequest;
 use ti_node::processor::swarm;
 use ti_node::processor::utils;
 
@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap();
 
     // Reach out to peers
-    for peer_node in cfg.peers {
+    for peer_node in &cfg.peers {
         if peer_node.len() == 0 {
             continue;
         }
@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Err(e) => println!("Dial {:?} failed: {:?}", address, e),
         };
     }
-    let (mut sender, receiver) = channel::<FeedRequest>(128);
+    let (mut sender, receiver) = channel::<ValidateRequest>(128);
     let mut p2p_processor = gossip::new(swarm, topic, receiver);
     tokio::task::spawn(async move {
         p2p_processor.process_p2p_message().await;
@@ -67,19 +67,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let var_name = &private_key[1..private_key.len()];
         private_key = env::var(var_name).expect("$NODE_PIVATE_KEY not set");
     }
-    let oracle_stub = fetcher::eth::new(private_key, cfg.eth_rpc_url, cfg.contract_address).await?;
+    let oracle_stub = chains::eth::new(
+        private_key,
+        cfg.eth_rpc_url.clone(),
+        cfg.contract_address.clone(),
+    )
+    .await?;
     loop {
         match oracle_stub.is_my_turn().call().await {
             Ok(is_my_turn) => {
                 println!("is my turn to feed? {}", is_my_turn);
                 if is_my_turn {
-                    let last_round: U256 = oracle_stub.last_round().call().await.unwrap();
-                    let feed_request = gossip::FeedRequest {
-                        coin: cfg.coin_name.clone(),
-                        round: last_round.as_u128(),
-                        timestamp: utils::timestamp(),
-                    };
-                    sender.send(feed_request).await.unwrap();
+                    collect_signatures(&oracle_stub, &cfg, &mut sender).await;
                 }
             }
             Err(err) => {
@@ -88,4 +87,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         tokio::time::sleep(Duration::from_millis(1000)).await;
     }
+}
+
+async fn collect_signatures(
+    oracle_stub: &chains::eth::TIOracle<
+        ethers::prelude::SignerMiddleware<
+            ethers::prelude::Provider<ethers::prelude::Http>,
+            ethers::prelude::Wallet<ethers::prelude::k256::ecdsa::SigningKey>,
+        >,
+    >,
+    cfg: &flags::Config,
+    sender: &mut futures::channel::mpsc::Sender<ValidateRequest>,
+) {
+    let last_round: U256 = oracle_stub.last_round().call().await.unwrap();
+    let valid_request = gossip::ValidateRequest {
+        coin: cfg.coin_name.clone(),
+        round: last_round.as_u128(),
+        timestamp: utils::timestamp(),
+        price: 0 as u128, //TODO fetch from api of market
+    };
+    sender.send(valid_request).await.unwrap();
 }

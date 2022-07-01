@@ -10,14 +10,15 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 #[derive(Serialize, Deserialize)]
-pub struct FeedRequest {
+pub struct ValidateRequest {
     pub coin: String,
+    pub price: u128,
     pub round: u128,
     pub timestamp: u64,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct FeedResponse {
+pub struct ValidateResponse {
     pub coin: String,
     pub price: u128,
     pub round: u128,
@@ -28,13 +29,13 @@ pub struct FeedResponse {
 pub struct P2PMessageProcessor {
     swarm: libp2p::Swarm<libp2p::gossipsub::Gossipsub>,
     topic: IdentTopic,
-    recv: Receiver<FeedRequest>,
+    recv: Receiver<ValidateRequest>,
 }
 
 pub fn new(
     swarm: libp2p::Swarm<libp2p::gossipsub::Gossipsub>,
     topic: IdentTopic,
-    recv: Receiver<FeedRequest>,
+    recv: Receiver<ValidateRequest>,
 ) -> P2PMessageProcessor {
     P2PMessageProcessor {
         swarm: swarm,
@@ -58,8 +59,8 @@ impl P2PMessageProcessor {
         // Kick it off
         loop {
             select! {
-                req = self.recv.select_next_some() => {
-                    let data = serde_json::to_string(&req).unwrap();
+                valid_req = self.recv.select_next_some() => {
+                    let data = serde_json::to_string(&valid_req).unwrap();
                     println!("{:}", data);
                     if let Err(e) = self.publish_txt(data) {
                         println!("Publish feed request error:{:?}", e);

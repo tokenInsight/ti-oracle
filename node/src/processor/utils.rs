@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-// timestamp returns the unix timestamp for now
+// timestamp returns the unix timestamp in ms for now
 pub fn timestamp() -> u64 {
     let start = SystemTime::now();
     let since_the_epoch = start

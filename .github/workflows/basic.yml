@@ -17,18 +17,18 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-      - name: Run Forge build
-        run: |
-          cd contract
-          forge --version
-          forge build --sizes
-      - name: Run Contract Tests
-        run: |
-          cd contract
-          forge test -vvv
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Run Forge build
+      run: |
+        cd contract
+        forge --version
+        forge build --sizes
+    - name: Run Contract Tests
+      run: |
+        cd contract
+        forge test -vvv
     - name: Build Node
       run: cd node && cargo build --verbose
     - name: Run Node tests

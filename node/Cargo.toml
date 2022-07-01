@@ -9,10 +9,6 @@ edition = "2021"
 name = "ti-node"
 path = "src/bin/server.rs"
 
-[[bin]]
-name = "sign"
-path = "src/bin/sign.rs"
-
 [dependencies]
 libp2p = { version = "0.44.0",features = ["gossipsub"]}
 futures = "0.3.1"

@@ -1,5 +1,8 @@
 use clap::{app_from_crate, crate_authors, crate_description, crate_name, crate_version};
 use env_logger::{Builder, Env};
+use ethers::prelude::U256;
+use futures::channel::mpsc::channel;
+use futures::SinkExt;
 use libp2p::Multiaddr;
 use std::env;
 use std::error::Error;
@@ -7,7 +10,9 @@ use std::time::Duration;
 use ti_node::fetcher;
 use ti_node::flags;
 use ti_node::processor::gossip;
+use ti_node::processor::gossip::FeedRequest;
 use ti_node::processor::swarm;
+use ti_node::processor::utils;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -52,8 +57,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Err(e) => println!("Dial {:?} failed: {:?}", address, e),
         };
     }
+    let (mut sender, receiver) = channel::<FeedRequest>(128);
+    let mut p2p_processor = gossip::new(swarm, topic, receiver);
     tokio::task::spawn(async move {
-        gossip::process_p2p_message(swarm, topic).await;
+        p2p_processor.process_p2p_message().await;
     });
     let mut private_key = cfg.private_key.clone();
     if private_key.starts_with("$") {
@@ -65,6 +72,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         match oracle_stub.is_my_turn().call().await {
             Ok(is_my_turn) => {
                 println!("is my turn to feed? {}", is_my_turn);
+                if is_my_turn {
+                    let last_round: U256 = oracle_stub.last_round().call().await.unwrap();
+                    let feed_request = gossip::FeedRequest {
+                        coin: cfg.coin_name.clone(),
+                        round: last_round.as_u128(),
+                        timestamp: utils::timestamp(),
+                    };
+                    sender.send(feed_request).await.unwrap();
+                }
             }
             Err(err) => {
                 println!("call contract error: {}", err);

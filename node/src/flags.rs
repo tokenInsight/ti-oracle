@@ -10,6 +10,7 @@ pub struct Config {
     pub network_topic: String,
     pub contract_address: String,
     pub private_key: String,
+    pub coin_name: String,
     pub peers: Vec<String>,
 }
 

@@ -10,7 +10,7 @@ contract ContractTest is Test {
     address nodeB;
     address nodeC;
     function setUp() public {
-        tiOracle = new TIOracle(5, 300); //5 feed each round, max delay 300 seconds
+        tiOracle = new TIOracle("eth", 5, 300); //for ETH, 5 times each round, max delay 300 seconds
         nodeA = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
         nodeB = address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
         nodeC = address(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC);
@@ -102,7 +102,7 @@ contract ContractTest is Test {
         vm.startPrank(nodeA);
         TIOracle.PeerPriceFeed[] memory btcFeeds = fakeBTCFeeds();
         TIOracle.PeerPriceFeed[] memory ethFeeds = fakeEthFeeds();
-        tiOracle.feedPrice("btc", btcFeeds);
+        tiOracle.feedPrice("eth", ethFeeds);
         tiOracle.feedPrice("eth", ethFeeds);
         tiOracle.feedPrice("eth", ethFeeds);
         tiOracle.feedPrice("eth", ethFeeds);
@@ -117,9 +117,10 @@ contract ContractTest is Test {
         vm.startPrank(nodeB);
         assertTrue(tiOracle.isMyTurn());
         tiOracle.feedPrice("eth", ethFeeds);
+        vm.expectRevert("coin mismatch");
+        tiOracle.feedPrice("btc", btcFeeds); //unexpected coin
         vm.stopPrank();
-        TIOracle.PriceInfo memory ethPrice = tiOracle.queryPrice("eth");
-        assertEq(ethPrice.tiPrice, 23457); //median
+        assertEq(tiOracle.queryPrice().price, 23457); //median
     }
 
     function testKickNode() public {

@@ -6,7 +6,7 @@ contract TIOracle {
     // PriceInfo is a single piece of price information,
     // which includes TI's quotation, and the timestamp of price feeding
     struct PriceInfo {
-        uint256 tiPrice; //median of peers' price
+        uint256 price; //median of peers' price
         uint256 timestamp;
     }
     // PeerPriceFeed represents price reported by each peer, with nodes' signature
@@ -20,12 +20,12 @@ contract TIOracle {
     event NodeRemoved(address removedNode);
     event NodeKicked(address removedNode);
     event PriceFeed(uint256 round, PriceInfo info);
-    // coin name => price, with precision & timestamp
-    mapping(string => PriceInfo) lastPrice;
+    // Coin name
+    string coin;
+    // last updated price, with timestamp
+    PriceInfo public lastPrice;
     // last round
     uint256 public lastRound;
-    // last timestamp
-    uint256 public lastTimestamp;
     // count
     uint256 public feedCount;
     // owner of the contract
@@ -41,15 +41,17 @@ contract TIOracle {
     // max seconds of delay for each time of feeding
     uint256 maxDelay;
 
-    constructor(uint256 feedCountPerRound, uint256 timeout) {
+    constructor(string memory coinName, uint256 feedCountPerRound, uint256 timeout) {
         admin = msg.sender;
+        coin = coinName;
         countPerRound = feedCountPerRound;
         maxDelay = timeout;
     }
 
-    //queryPrice get the last price feeded of certain coin
-    function queryPrice(string memory coinName) public view returns (PriceInfo memory) {
-        return lastPrice[coinName];
+    // queryPrice returns the last updated price with timestamp
+    function queryPrice() public view returns (PriceInfo memory) {
+        require(lastPrice.timestamp > 0, "not initialzied");
+        return lastPrice;
     }
 
     //  decide next valid node to feed price, in a round-robbin way
@@ -60,7 +62,7 @@ contract TIOracle {
     }
 
     function isMyTurn() public view returns (bool)  {
-        bool timeout = lastTimestamp >0 && ((block.timestamp - lastTimestamp) > maxDelay);
+        bool timeout = lastPrice.timestamp >0 && ((block.timestamp - lastPrice.timestamp) > maxDelay);
         //console.log("timeout", timeout);
         if (timeout) { //if timeout, any nodes in the list can feed price
             return nodesOffset[msg.sender] > 0;
@@ -88,13 +90,13 @@ contract TIOracle {
 
     // feedPrice is called by leader node to feed price of cryptos, with a price list reported by all peers
     function feedPrice(string memory coinName, PeerPriceFeed[] memory peersPrice) public {
+        require(keccak256(bytes(coinName)) == keccak256(bytes(coin)), "coin mismatch");
         require(isMyTurn(), "invalid transmission node");
         require(checkSignatures(coinName, peersPrice), "no enough signatures of nodes");
         PriceInfo memory priceInfo;
-        priceInfo.tiPrice = peersPrice[peersPrice.length/2].price; //median
+        priceInfo.price = peersPrice[peersPrice.length/2].price; //median
         priceInfo.timestamp = block.timestamp;
-        lastPrice[coinName] = priceInfo;
-        lastTimestamp = block.timestamp;
+        lastPrice = priceInfo;
         emit PriceFeed(lastRound, priceInfo);
         ++feedCount;
         if (feedCount % countPerRound == 0) {

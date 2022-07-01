@@ -63,11 +63,7 @@ contract TIOracle {
         bool timeout = lastTimestamp >0 && ((block.timestamp - lastTimestamp) > maxDelay);
         //console.log("timeout", timeout);
         if (timeout) { //if timeout, any nodes in the list can feed price
-            for(uint i=0;i<nodes.length;i++) {
-                if (msg.sender == nodes[i]) {
-                    return true;
-                }
-            }
+            return nodesOffset[msg.sender] > 0;
         }
         //in case of not timeout, scheduling should be in a way of round-robbin
         return decideValidNode(lastRound) == msg.sender;

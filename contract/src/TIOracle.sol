@@ -79,6 +79,7 @@ contract TIOracle {
         }
         for (uint i=0; i<peersPrice.length; i++) {
             PeerPriceFeed memory peer = peersPrice[i];
+            require(peer.timestamp > lastPrice.timestamp, "invalid timestamp");
             require(nodesOffset[peer.peerAddress] > 0, "peer not in valid list");
             require(peer.price >= prevPeerPrice , "price list not soreted in increasing order");
             bytes32 digest = keccak256(abi.encodePacked(coinName, peer.price, peer.timestamp));
@@ -97,6 +98,7 @@ contract TIOracle {
         PriceInfo memory priceInfo;
         priceInfo.price = peersPrice[peersPrice.length/2].price; //median
         priceInfo.timestamp = block.timestamp;
+        //console.log("timestamp", block.timestamp);
         lastPrice = priceInfo;
         emit PriceFeed(lastRound, priceInfo);
         ++feedCount;

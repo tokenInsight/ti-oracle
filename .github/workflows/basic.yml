@@ -22,12 +22,12 @@ jobs:
         version: nightly
     - name: Run Forge build
       run: |
-        cd contract
+        cd contracts
         forge --version
         forge build --sizes
     - name: Run Contract Tests
       run: |
-        cd contract
+        cd contracts
         forge test -vvv
     - name: Build Node
       run: cd node && cargo build --verbose

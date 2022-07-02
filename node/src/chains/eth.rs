@@ -3,7 +3,7 @@ use eyre::Result;
 use std::error::Error;
 use std::{convert::TryFrom, sync::Arc};
 
-abigen!(TIOracle, "../contract/out/TIOracle.sol/TIOracle.json");
+abigen!(TIOracle, "../contracts/out/TIOracle.sol/TIOracle.json");
 
 type OracleStub = TIOracle<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 

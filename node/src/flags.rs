@@ -1,4 +1,5 @@
 use serde_derive::Deserialize;
+use std::collections::BTreeMap;
 use std::vec::Vec;
 
 #[derive(Deserialize)]
@@ -7,11 +8,11 @@ pub struct Config {
     pub log_level: String,
     pub eth_rpc_url: String,
     pub price_topic: String,
-    pub network_topic: String,
     pub contract_address: String,
     pub private_key: String,
     pub coin_name: String,
     pub peers: Vec<String>,
+    pub mappings: BTreeMap<String, Vec<String>>,
 }
 
 impl Config {

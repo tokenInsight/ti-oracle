@@ -1,10 +1,17 @@
 listen_address : /ip4/0.0.0.0/tcp/0
 log_level: info
 eth_rpc_url: https://rpc-mainnet.maticvigil.com
-price_topic: ti-crypto-price
-network_topic: ti-network
+price_topic: BITCOIN
 contract_address: 0x58ce845a648597e6fb38993f7b2d84f5decfc523
 coin_name: bitcoin
 private_key: $NODE_PRIVATE_KEY
+mappings:
+  binance:
+    - BTCUSDC
+    - BTCUSDT
+  coinbase:
+    - BTCUSD
+  uniswapv3:
+    - 0x99ac8ca7087fa4a2a1fb6357269965a2014abc35
 peers:
   - ""

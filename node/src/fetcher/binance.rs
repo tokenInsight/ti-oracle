@@ -4,7 +4,7 @@ use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::error::Error;
 
-use super::PRECESIONS;
+use super::convert_bigint_price;
 pub type Piars = Vec<Pair>;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -31,11 +31,6 @@ pub struct Pair {
     pub first_id: i64,
     pub last_id: i64,
     pub count: i64,
-}
-
-fn convert_bigint_price(s: &String) -> Result<u128, Box<dyn Error>> {
-    let price = s.parse::<f64>()?;
-    return Ok((price * PRECESIONS) as u128);
 }
 
 pub async fn get_pairs(symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {

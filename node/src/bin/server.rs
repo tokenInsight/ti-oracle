@@ -8,6 +8,7 @@ use std::env;
 use std::error::Error;
 use std::time::Duration;
 use ti_node::chains;
+use ti_node::fetcher::aggregator;
 use ti_node::flags;
 use ti_node::processor::gossip;
 use ti_node::processor::gossip::ValidateRequest;
@@ -73,12 +74,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
         cfg.contract_address.clone(),
     )
     .await?;
+    let agg = aggregator::new(cfg.mappings.clone());
     loop {
         match oracle_stub.is_my_turn().call().await {
             Ok(is_my_turn) => {
                 println!("is my turn to feed? {}", is_my_turn);
                 if is_my_turn {
-                    collect_signatures(&oracle_stub, &cfg, &mut sender).await;
+                    let price_result = agg.get_price().await;
+                    match price_result {
+                        Ok(weighted_price) => {
+                            collect_signatures(&oracle_stub, &cfg, &mut sender, weighted_price)
+                                .await;
+                        }
+                        Err(err) => println!("{}", err),
+                    }
                 }
             }
             Err(err) => {
@@ -98,13 +107,14 @@ async fn collect_signatures(
     >,
     cfg: &flags::Config,
     sender: &mut futures::channel::mpsc::Sender<ValidateRequest>,
+    weighted_price: u128,
 ) {
     let last_round: U256 = oracle_stub.last_round().call().await.unwrap();
     let valid_request = gossip::ValidateRequest {
         coin: cfg.coin_name.clone(),
-        round: last_round.as_u128(),
+        round: last_round.as_u64(),
         timestamp: utils::timestamp(),
-        price: 0 as u128, //TODO fetch from api of market
+        price: weighted_price.to_string(), //TODO fetch from api of market
     };
     sender.send(valid_request).await.unwrap();
 }

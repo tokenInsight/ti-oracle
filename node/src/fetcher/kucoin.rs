@@ -2,9 +2,11 @@ use super::convert_bigint_price;
 use super::Exchange;
 use super::PairInfo;
 use async_trait::async_trait;
+use reqwest::ClientBuilder;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::error::Error;
+use std::time::Duration;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -46,8 +48,8 @@ impl Exchange for Kucoin {
                 "https://api.kucoin.com/api/v1/market/stats?symbol={symbol}",
                 symbol = symbol
             );
-            //println!("{}", request_url);
-            let client = reqwest::Client::new();
+            let timeout = Duration::new(5, 0);
+            let client = ClientBuilder::new().timeout(timeout).build()?;
             let response = client
                 .get(&request_url)
                 .header("User-Agent", "ti-oracle")

@@ -4,9 +4,11 @@ use super::convert_bigint_price;
 use super::Exchange;
 use super::PairInfo;
 use async_trait::async_trait;
+use reqwest::ClientBuilder;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::error::Error;
+use std::time::Duration;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -61,7 +63,8 @@ impl Exchange for UniswapV3 {
         for symbol in symbols {
             let request_url = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3";
             //println!("{}", request_url);
-            let client = reqwest::Client::new();
+            let timeout = Duration::new(5, 0);
+            let client = ClientBuilder::new().timeout(timeout).build()?;
             let fmt_str = r#"
         {
             pool(id: "{pool_id}") {

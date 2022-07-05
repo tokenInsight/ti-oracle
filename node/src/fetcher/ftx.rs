@@ -2,9 +2,11 @@ use crate::fetcher::PairInfo;
 use crate::processor::utils;
 use async_trait::async_trait;
 use eyre::Result;
+use reqwest::ClientBuilder;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::error::Error;
+use std::time::Duration;
 
 use super::Exchange;
 use super::PRECESIONS;
@@ -54,7 +56,9 @@ pub struct Ftx {}
 impl Exchange for Ftx {
     async fn get_pairs(&self, symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {
         let request_url = format!("https://ftx.com/api/markets");
-        let response = reqwest::get(&request_url).await?;
+        let timeout = Duration::new(5, 0);
+        let client = ClientBuilder::new().timeout(timeout).build()?;
+        let response = client.get(&request_url).send().await?;
         let pair_list: PairList = response.json().await?;
         let mut result = Vec::<PairInfo>::new();
         for pair in &pair_list.result {

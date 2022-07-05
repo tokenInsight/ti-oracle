@@ -9,23 +9,29 @@ use libp2p::swarm::SwarmEvent;
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ValidateRequest {
     pub coin: String,
-    pub price: u128,
-    pub round: u128,
+    pub price: String,
+    pub round: u64,
     pub timestamp: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ValidateResponse {
     pub coin: String,
-    pub price: u128,
-    pub round: u128,
+    pub price: String,
+    pub round: u64,
     pub sig: Vec<u8>,
     pub timestamp: u64,
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum CommandMessage {
+    VReq(ValidateRequest),
+    VResp(ValidateResponse),
+}
 pub struct P2PMessageProcessor {
     swarm: libp2p::Swarm<libp2p::gossipsub::Gossipsub>,
     topic: IdentTopic,
@@ -60,7 +66,8 @@ impl P2PMessageProcessor {
         loop {
             select! {
                 valid_req = self.recv.select_next_some() => {
-                    let data = serde_json::to_string(&valid_req).unwrap();
+                    let cmd_req = CommandMessage::VReq(valid_req);
+                    let data = serde_json::to_string(&cmd_req).unwrap();
                     println!("{:}", data);
                     if let Err(e) = self.publish_txt(data) {
                         println!("Publish feed request error:{:?}", e);
@@ -77,12 +84,28 @@ impl P2PMessageProcessor {
                         propagation_source: peer_id,
                         message_id: id,
                         message,
-                    }) => println!(
+                    }) => {
+                        let msg_json = String::from_utf8_lossy(&message.data);
+                        println!(
                         "Got message: {} with id: {} from peer: {:?}",
-                        String::from_utf8_lossy(&message.data),
+                        msg_json,
                         id,
-                        peer_id
-                    ),
+                        peer_id);
+                        let cmd_result:Result<CommandMessage, serde_json::Error>= serde_json::from_str(&msg_json);
+                        if cmd_result.is_ok() {
+                            let cmd_result = cmd_result.unwrap();
+                            match cmd_result{
+                                CommandMessage::VReq(valid_req) => {
+                                    println!("validate price request {:?}", valid_req);
+                                },
+                                CommandMessage::VResp(valid_resps) => {
+                                    println!("validate price response {:?}", valid_resps);
+                                },
+                            }
+                        } else {
+                            println!("message error:{:?}", cmd_result.err());
+                        }
+                    },
                     SwarmEvent::NewListenAddr { address, .. } => {
                         println!("Listening on {:?}", address);
                     }

@@ -1,3 +1,5 @@
+use super::ftx::Ftx;
+use super::kucoin::Kucoin;
 use super::{binance, coinbase, uniswapv3, Exchange, PairInfo};
 use binance::Binance;
 use coinbase::Coinbase;
@@ -24,6 +26,10 @@ pub fn new(mappings: BTreeMap<String, Vec<String>>) -> Aggregator {
         .insert("coinbase".into(), Box::new(Coinbase::default()));
     agg.data_sources
         .insert("uniswapv3".into(), Box::new(UniswapV3::default()));
+    agg.data_sources
+        .insert("ftx".into(), Box::new(Ftx::default()));
+    agg.data_sources
+        .insert("kucoin".into(), Box::new(Kucoin::default()));
     agg
 }
 
@@ -36,10 +42,14 @@ impl std::error::Error for AggError {}
 
 impl Aggregator {
     pub async fn get_price(&self) -> Result<u128, Box<dyn Error>> {
-        let tasks = self.data_sources.iter().map(|(ex_name, exchange)| {
-            let symbols = self.mappings[ex_name].clone();
-            exchange.get_pairs(symbols)
-        });
+        let tasks = self
+            .data_sources
+            .iter()
+            .filter(|item| self.mappings.contains_key(item.0))
+            .map(|(ex_name, exchange)| {
+                let symbols = self.mappings[ex_name].clone();
+                exchange.get_pairs(symbols)
+            });
         let all_exchanges: Vec<Result<Vec<PairInfo>, Box<dyn Error>>> =
             future::join_all(tasks).await;
         let mut total_volume = 0 as f64;
@@ -63,6 +73,7 @@ impl Aggregator {
         //if all_pairs.len() < 3 {
         //    return Err(Box::new(AggError::NoPairs("should have more than 3 pairs".into())))
         //}
+        println!("pairs count:{}", all_pairs.len());
         let mut avg_price = 0.0 as f64;
         for pair in all_pairs {
             avg_price += pair.price as f64 * pair.volume / total_volume;

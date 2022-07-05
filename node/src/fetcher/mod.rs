@@ -1,6 +1,8 @@
 pub mod aggregator;
 pub mod binance;
 pub mod coinbase;
+pub mod ftx;
+pub mod kucoin;
 pub mod uniswapv3;
 use async_trait::async_trait;
 use std::error::Error;

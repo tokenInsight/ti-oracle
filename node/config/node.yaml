@@ -15,5 +15,11 @@ mappings:
   uniswapv3:
     - 0x99ac8ca7087fa4a2a1fb6357269965a2014abc35
     - 0x9db9e0e53058c89e5b94e29621a205198648425b
+  ftx:
+    - BTC/USD
+    - BTC/USDT
+  kucoin:
+    - BTC-USDT
+    - BTC-USDC
 peers:
   - ""

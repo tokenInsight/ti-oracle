@@ -1,10 +1,12 @@
 use crate::fetcher::PairInfo;
+use async_trait::async_trait;
 use eyre::Result;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::error::Error;
 
 use super::convert_bigint_price;
+use super::Exchange;
 pub type Piars = Vec<Pair>;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -33,22 +35,28 @@ pub struct Pair {
     pub count: i64,
 }
 
-pub async fn get_pairs(symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {
-    let request_url = format!("https://api.binance.com/api/v3/ticker/24hr");
-    let response = reqwest::get(&request_url).await?;
-    let pair_list: Vec<Pair> = response.json().await?;
-    let mut result = Vec::<PairInfo>::new();
-    for pair in &pair_list {
-        if symbols.contains(&pair.symbol) {
-            result.push(PairInfo {
-                symbol: pair.symbol.clone(),
-                price: convert_bigint_price(&pair.last_price)?,
-                volume: pair.volume.parse::<f64>()?,
-                timestamp: pair.close_time as u64,
-            });
+#[derive(Default, Clone)]
+pub struct Binance {}
+
+#[async_trait]
+impl Exchange for Binance {
+    async fn get_pairs(&self, symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {
+        let request_url = format!("https://api.binance.com/api/v3/ticker/24hr");
+        let response = reqwest::get(&request_url).await?;
+        let pair_list: Vec<Pair> = response.json().await?;
+        let mut result = Vec::<PairInfo>::new();
+        for pair in &pair_list {
+            if symbols.contains(&pair.symbol) {
+                result.push(PairInfo {
+                    symbol: pair.symbol.clone(),
+                    price: convert_bigint_price(&pair.last_price)?,
+                    volume: pair.volume.parse::<f64>()?,
+                    timestamp: pair.close_time as u64,
+                });
+            }
         }
+        return Ok(result);
     }
-    return Ok(result);
 }
 
 #[cfg(test)]
@@ -56,7 +64,10 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_fetch() {
-        let result = get_pairs(vec!["BTCUSDC".into(), "BTCUSDT".into()]).await;
+        let binance = Binance::default();
+        let result = binance
+            .get_pairs(vec!["BTCUSDC".into(), "BTCUSDT".into()])
+            .await;
         let result = result.unwrap();
         println!("{:?}", result);
         assert_eq!(result.len(), 2);

@@ -1,5 +1,9 @@
+use crate::processor::utils;
+
 use super::convert_bigint_price;
+use super::Exchange;
 use super::PairInfo;
+use async_trait::async_trait;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::error::Error;
@@ -47,13 +51,18 @@ struct QueryRequest {
     pub query: String,
 }
 
-pub async fn get_pairs(symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {
-    let mut result = Vec::<PairInfo>::new();
-    for symbol in symbols {
-        let request_url = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3";
-        //println!("{}", request_url);
-        let client = reqwest::Client::new();
-        let fmt_str = r#"
+#[derive(Default, Clone)]
+pub struct UniswapV3 {}
+
+#[async_trait]
+impl Exchange for UniswapV3 {
+    async fn get_pairs(&self, symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {
+        let mut result = Vec::<PairInfo>::new();
+        for symbol in symbols {
+            let request_url = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3";
+            //println!("{}", request_url);
+            let client = reqwest::Client::new();
+            let fmt_str = r#"
         {
             pool(id: "{pool_id}") {
               id
@@ -66,23 +75,24 @@ pub async fn get_pairs(symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Er
             }
           }
         "#;
-        let query_params = fmt_str.to_string().replace("{pool_id}", &symbol);
-        let query: QueryRequest = QueryRequest {
-            query: query_params,
-        };
-        let content = serde_json::to_string(&query).unwrap();
-        //println!("{}", content);
-        let response = client.post(request_url).body(content).send().await?;
-        //println!("{}", response.text().await?);
-        let pair: Pair = response.json().await?;
-        result.push(PairInfo {
-            symbol: symbol.clone(),
-            price: convert_bigint_price(&pair.data.pool.token1price)?,
-            volume: pair.data.pool.volume_token0.parse::<f64>()?,
-            timestamp: 0 as u64, //TODO timestamp
-        });
+            let query_params = fmt_str.to_string().replace("{pool_id}", &symbol);
+            let query: QueryRequest = QueryRequest {
+                query: query_params,
+            };
+            let content = serde_json::to_string(&query).unwrap();
+            //println!("{}", content);
+            let response = client.post(request_url).body(content).send().await?;
+            //println!("{}", response.text().await?);
+            let pair: Pair = response.json().await?;
+            result.push(PairInfo {
+                symbol: symbol.clone(),
+                price: convert_bigint_price(&pair.data.pool.token1price)?,
+                volume: pair.data.pool.volume_token0.parse::<f64>()?,
+                timestamp: utils::timestamp() as u64, //TODO timestamp
+            });
+        }
+        return Ok(result);
     }
-    return Ok(result);
 }
 
 #[cfg(test)]
@@ -90,11 +100,13 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_fetch() {
-        let result = get_pairs(vec![
-            "0x99ac8ca7087fa4a2a1fb6357269965a2014abc35".into(),
-            "0x9db9e0e53058c89e5b94e29621a205198648425b".into(),
-        ])
-        .await;
+        let uni = UniswapV3::default();
+        let result = uni
+            .get_pairs(vec![
+                "0x99ac8ca7087fa4a2a1fb6357269965a2014abc35".into(),
+                "0x9db9e0e53058c89e5b94e29621a205198648425b".into(),
+            ])
+            .await;
         let result = result.unwrap();
         println!("{:?}", result);
         assert_eq!(result.len(), 2);

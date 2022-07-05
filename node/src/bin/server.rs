@@ -60,21 +60,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
     }
     let (mut sender, receiver) = channel::<ValidateRequest>(128);
-    let mut p2p_processor = gossip::new(swarm, topic, receiver);
-    tokio::task::spawn(async move {
-        p2p_processor.process_p2p_message().await;
-    });
     let mut private_key = cfg.private_key.clone();
     if private_key.starts_with("$") {
         let var_name = &private_key[1..private_key.len()];
         private_key = env::var(var_name).expect("$NODE_PIVATE_KEY not set");
     }
     let oracle_stub = chains::eth::new(
-        private_key,
+        private_key.clone(),
         cfg.eth_rpc_url.clone(),
         cfg.contract_address.clone(),
     )
     .await?;
+    let mut p2p_processor = gossip::new(swarm, topic, receiver);
+    tokio::task::spawn(async move {
+        p2p_processor.process_p2p_message(private_key.clone()).await;
+    });
     let agg = aggregator::new(cfg.mappings.clone());
     loop {
         match oracle_stub.is_my_turn().call().await {

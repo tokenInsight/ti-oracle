@@ -1,3 +1,4 @@
+use crate::chains::eth;
 use async_std::io;
 use futures::channel::mpsc::Receiver;
 use futures::{prelude::*, select};
@@ -23,7 +24,7 @@ pub struct ValidateResponse {
     pub coin: String,
     pub price: String,
     pub round: u64,
-    pub sig: Vec<u8>,
+    pub sig: String,
     pub timestamp: u64,
 }
 
@@ -60,7 +61,7 @@ impl P2PMessageProcessor {
     }
 
     // handle incoming events from p2p network
-    pub async fn process_p2p_message(&mut self) {
+    pub async fn process_p2p_message(&mut self, private_key: String) -> ! {
         // for debug usage
         let mut stdin = io::BufReader::new(io::stdin()).lines().fuse();
         // Kick it off
@@ -97,10 +98,10 @@ impl P2PMessageProcessor {
                             let cmd_result = cmd_result.unwrap();
                             match cmd_result{
                                 CommandMessage::VReq(valid_req) => {
-                                    debug!("validate price request {:?}", valid_req);
+                                    self.sign_and_sendresponse(valid_req, private_key.clone());
                                 },
                                 CommandMessage::VResp(valid_resps) => {
-                                    debug!("validate price response {:?}", valid_resps);
+                                    info!("validate price response {:?}", valid_resps);
                                 },
                             }
                         } else {
@@ -113,6 +114,29 @@ impl P2PMessageProcessor {
                     _ => {}
                 }
             }
+        }
+    }
+
+    fn sign_and_sendresponse(&mut self, valid_req: ValidateRequest, private_key: String) {
+        debug!("validate price request {:?}", valid_req);
+        let price = valid_req.price.parse::<u128>().unwrap();
+        let sig: String = eth::sign_price_info(
+            private_key.clone(),
+            valid_req.coin.clone(),
+            price,
+            valid_req.timestamp,
+        );
+        debug!("sig:{}", sig);
+        let sig_response = CommandMessage::VResp(ValidateResponse {
+            coin: valid_req.coin,
+            price: price.to_string(),
+            round: valid_req.round,
+            sig: sig,
+            timestamp: valid_req.timestamp,
+        });
+        let sig_json = serde_json::to_string(&sig_response).unwrap();
+        if let Err(err) = self.publish_txt(sig_json) {
+            warn!("send response fail:{}", err);
         }
     }
 }

@@ -94,6 +94,7 @@ impl Aggregator {
 mod tests {
     use crate::fetcher::aggregator;
     use crate::flags;
+    use log::info;
     #[tokio::test]
     async fn test_agg() {
         let cfg = flags::Config::new("./config/node.yaml").unwrap();

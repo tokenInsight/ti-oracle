@@ -1,12 +1,13 @@
+use super::convert_bigint_price;
+use super::Exchange;
 use crate::fetcher::PairInfo;
 use async_trait::async_trait;
 use eyre::Result;
+use reqwest::ClientBuilder;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::error::Error;
-
-use super::convert_bigint_price;
-use super::Exchange;
+use std::time::Duration;
 pub type Piars = Vec<Pair>;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -42,7 +43,9 @@ pub struct Binance {}
 impl Exchange for Binance {
     async fn get_pairs(&self, symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {
         let request_url = format!("https://api.binance.com/api/v3/ticker/24hr");
-        let response = reqwest::get(&request_url).await?;
+        let timeout = Duration::new(5, 0);
+        let client = ClientBuilder::new().timeout(timeout).gzip(true).build()?;
+        let response = client.get(&request_url).send().await?;
         let pair_list: Vec<Pair> = response.json().await?;
         let mut result = Vec::<PairInfo>::new();
         for pair in &pair_list {

@@ -57,7 +57,7 @@ impl Exchange for Ftx {
     async fn get_pairs(&self, symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {
         let request_url = format!("https://ftx.com/api/markets");
         let timeout = Duration::new(5, 0);
-        let client = ClientBuilder::new().timeout(timeout).build()?;
+        let client = ClientBuilder::new().timeout(timeout).gzip(true).build()?;
         let response = client.get(&request_url).send().await?;
         let pair_list: PairList = response.json().await?;
         let mut result = Vec::<PairInfo>::new();

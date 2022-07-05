@@ -26,7 +26,7 @@ eyre = "0.6"
 hex = "0.4"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 ethers = { git = "https://github.com/gakonst/ethers-rs", branch="master"}
-reqwest = "0.11.11"
+reqwest = { version = "0.11.11", features= ["gzip"] }
 strum_macros = "0.22"
 chrono = "0.4"
 log = "0.4.0"

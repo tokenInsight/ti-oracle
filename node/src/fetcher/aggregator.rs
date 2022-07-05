@@ -60,6 +60,7 @@ impl Aggregator {
                     for pair in pairs {
                         total_volume += pair.volume;
                         all_pairs.push(pair);
+                        println!("{} -> {},{}", pair.symbol, pair.price, pair.volume);
                     }
                 }
                 Err(err) => {

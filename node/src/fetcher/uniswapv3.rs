@@ -84,10 +84,11 @@ impl Exchange for UniswapV3 {
             let response = client.post(request_url).body(content).send().await?;
             //println!("{}", response.text().await?);
             let pair: Pair = response.json().await?;
+            let adjust_weight = 0.0063; //TODO: later, we should fetch 24hours volume
             result.push(PairInfo {
                 symbol: symbol.clone(),
                 price: convert_bigint_price(&pair.data.pool.token1price)?,
-                volume: pair.data.pool.volume_token0.parse::<f64>()?,
+                volume: pair.data.pool.volume_token0.parse::<f64>()? * adjust_weight,
                 timestamp: utils::timestamp() as u64, //TODO timestamp
             });
         }

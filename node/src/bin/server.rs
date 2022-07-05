@@ -4,6 +4,7 @@ use ethers::prelude::U256;
 use futures::channel::mpsc::channel;
 use futures::SinkExt;
 use libp2p::Multiaddr;
+use log::{info, warn};
 use std::env;
 use std::error::Error;
 use std::time::Duration;
@@ -54,8 +55,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         let address: Multiaddr = peer_node.parse().expect("User to provide valid address.");
         match swarm.dial(address.clone()) {
-            Ok(_) => println!("Dialed {:?}", address),
-            Err(e) => println!("Dial {:?} failed: {:?}", address, e),
+            Ok(_) => info!("Dialed {:?}", address),
+            Err(e) => warn!("Dial {:?} failed: {:?}", address, e),
         };
     }
     let (mut sender, receiver) = channel::<ValidateRequest>(128);
@@ -78,7 +79,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     loop {
         match oracle_stub.is_my_turn().call().await {
             Ok(is_my_turn) => {
-                println!("is my turn to feed? {}", is_my_turn);
+                info!("check if it is my turn to feed? {}", is_my_turn);
                 if is_my_turn {
                     let price_result = agg.get_price().await;
                     match price_result {
@@ -86,12 +87,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             collect_signatures(&oracle_stub, &cfg, &mut sender, weighted_price)
                                 .await;
                         }
-                        Err(err) => println!("{}", err),
+                        Err(err) => warn!("{}", err),
                     }
                 }
             }
             Err(err) => {
-                println!("call contract error: {}", err);
+                warn!("call contract error: {}", err);
             }
         }
         tokio::time::sleep(Duration::from_millis(1000)).await;

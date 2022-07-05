@@ -6,6 +6,7 @@ use libp2p::gossipsub::GossipsubEvent;
 use libp2p::gossipsub::IdentTopic;
 use libp2p::gossipsub::MessageId;
 use libp2p::swarm::SwarmEvent;
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json;
 
@@ -68,15 +69,15 @@ impl P2PMessageProcessor {
                 valid_req = self.recv.select_next_some() => {
                     let cmd_req = CommandMessage::VReq(valid_req);
                     let data = serde_json::to_string(&cmd_req).unwrap();
-                    println!("{:}", data);
+                    debug!("local command {:}", data);
                     if let Err(e) = self.publish_txt(data) {
-                        println!("Publish feed request error:{:?}", e);
+                        warn!("Publish feed request error:{:?}", e);
                     }
                 },
                 line = stdin.select_next_some() => {
                     if let Err(e) = self.publish_txt(line.expect("Stdin not to close"))
                     {
-                        println!("Publish debug info error: {:?}", e);
+                        warn!("Publish debug info error: {:?}", e);
                     }
                 },
                 event = self.swarm.select_next_some() => match event {
@@ -86,7 +87,7 @@ impl P2PMessageProcessor {
                         message,
                     }) => {
                         let msg_json = String::from_utf8_lossy(&message.data);
-                        println!(
+                        debug!(
                         "Got message: {} with id: {} from peer: {:?}",
                         msg_json,
                         id,
@@ -96,18 +97,18 @@ impl P2PMessageProcessor {
                             let cmd_result = cmd_result.unwrap();
                             match cmd_result{
                                 CommandMessage::VReq(valid_req) => {
-                                    println!("validate price request {:?}", valid_req);
+                                    debug!("validate price request {:?}", valid_req);
                                 },
                                 CommandMessage::VResp(valid_resps) => {
-                                    println!("validate price response {:?}", valid_resps);
+                                    debug!("validate price response {:?}", valid_resps);
                                 },
                             }
                         } else {
-                            println!("message error:{:?}", cmd_result.err());
+                            warn!("message error:{:?}", cmd_result.err());
                         }
                     },
                     SwarmEvent::NewListenAddr { address, .. } => {
-                        println!("Listening on {:?}", address);
+                        info!("Listening on {:?}", address);
                     }
                     _ => {}
                 }

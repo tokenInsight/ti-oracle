@@ -58,7 +58,10 @@ pub struct UniswapV3 {}
 
 #[async_trait]
 impl Exchange for UniswapV3 {
-    async fn get_pairs(&self, symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {
+    async fn get_pairs(
+        &self,
+        symbols: Vec<String>,
+    ) -> Result<Vec<PairInfo>, Box<dyn Error + Send + Sync>> {
         let mut result = Vec::<PairInfo>::new();
         for symbol in symbols {
             let request_url = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3";

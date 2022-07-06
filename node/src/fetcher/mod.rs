@@ -16,12 +16,15 @@ pub struct PairInfo {
     pub timestamp: u64,
 }
 
-fn convert_bigint_price(s: &String) -> Result<u128, Box<dyn Error>> {
+fn convert_bigint_price(s: &String) -> Result<u128, Box<dyn Error + Send + Sync>> {
     let price = s.parse::<f64>()?;
     return Ok((price * PRECESIONS) as u128);
 }
 
 #[async_trait]
-pub trait Exchange: Send + Sync + 'static {
-    async fn get_pairs(&self, symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>>;
+pub trait Exchange: Send + Sync {
+    async fn get_pairs(
+        &self,
+        symbols: Vec<String>,
+    ) -> Result<Vec<PairInfo>, Box<dyn Error + Send + Sync>>;
 }

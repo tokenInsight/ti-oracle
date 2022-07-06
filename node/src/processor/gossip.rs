@@ -1,4 +1,5 @@
 use crate::chains::eth;
+use crate::flags::Config;
 use async_std::io;
 use futures::channel::mpsc::Receiver;
 use futures::{prelude::*, select};
@@ -10,12 +11,15 @@ use libp2p::swarm::SwarmEvent;
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json;
+use std::collections::BTreeMap;
+use std::sync::Arc;
+use std::sync::Mutex;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ValidateRequest {
     pub coin: String,
     pub price: String,
-    pub round: u64,
+    pub feed_count: u64,
     pub timestamp: u64,
 }
 
@@ -23,8 +27,15 @@ pub struct ValidateRequest {
 pub struct ValidateResponse {
     pub coin: String,
     pub price: String,
-    pub round: u64,
+    pub feed_count: u64,
     pub sig: String,
+    pub timestamp: u64,
+    pub address: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RefreshPrice {
+    pub price: String,
     pub timestamp: u64,
 }
 
@@ -34,21 +45,33 @@ pub enum CommandMessage {
     VReq(ValidateRequest),
     VResp(ValidateResponse),
 }
+
+pub enum LocalCommand {
+    VReq(ValidateRequest),
+    RefreshReq(RefreshPrice),
+}
+
+pub type ValidationBucket = Arc<Mutex<BTreeMap<u64, Vec<ValidateResponse>>>>;
 pub struct P2PMessageProcessor {
     swarm: libp2p::Swarm<libp2p::gossipsub::Gossipsub>,
     topic: IdentTopic,
-    recv: Receiver<ValidateRequest>,
+    recv: Receiver<LocalCommand>,
+    last_seen_price: Arc<Mutex<u128>>,
+    bucket: ValidationBucket,
 }
 
 pub fn new(
     swarm: libp2p::Swarm<libp2p::gossipsub::Gossipsub>,
     topic: IdentTopic,
-    recv: Receiver<ValidateRequest>,
+    recv: Receiver<LocalCommand>,
+    bucket: ValidationBucket,
 ) -> P2PMessageProcessor {
     P2PMessageProcessor {
         swarm: swarm,
         topic: topic,
         recv: recv,
+        last_seen_price: Arc::<Mutex<u128>>::new(Mutex::new(0)),
+        bucket: bucket,
     }
 }
 
@@ -61,19 +84,28 @@ impl P2PMessageProcessor {
     }
 
     // handle incoming events from p2p network
-    pub async fn process_p2p_message(&mut self, private_key: String) -> ! {
+    pub async fn process_p2p_message(&mut self, cfg: Config) {
         // for debug usage
         let mut stdin = io::BufReader::new(io::stdin()).lines().fuse();
         // Kick it off
         loop {
             select! {
-                valid_req = self.recv.select_next_some() => {
-                    let cmd_req = CommandMessage::VReq(valid_req);
-                    let data = serde_json::to_string(&cmd_req).unwrap();
-                    debug!("local command {:}", data);
-                    if let Err(e) = self.publish_txt(data) {
-                        warn!("Publish feed request error:{:?}", e);
+                local_cmd = self.recv.select_next_some() => {
+                    match local_cmd {
+                        LocalCommand::VReq(valid_req) => {
+                            let cmd_req = CommandMessage::VReq(valid_req);
+                            let data = serde_json::to_string(&cmd_req).unwrap();
+                            debug!("local command {:}", data);
+                            if let Err(e) = self.publish_txt(data) {
+                                warn!("Publish feed request error:{:?}", e);
+                            }
+                        },
+                        LocalCommand::RefreshReq(refresh_req) => {
+                            debug!("local command: {:?}", refresh_req);
+                            *self.last_seen_price.lock().unwrap() = refresh_req.price.parse::<u128>().unwrap();
+                        }
                     }
+
                 },
                 line = stdin.select_next_some() => {
                     if let Err(e) = self.publish_txt(line.expect("Stdin not to close"))
@@ -98,10 +130,18 @@ impl P2PMessageProcessor {
                             let cmd_result = cmd_result.unwrap();
                             match cmd_result{
                                 CommandMessage::VReq(valid_req) => {
-                                    self.sign_and_sendresponse(valid_req, private_key.clone());
+                                    self.sign_and_sendresponse(valid_req, &cfg).await;
                                 },
                                 CommandMessage::VResp(valid_resps) => {
                                     info!("validate price response {:?}", valid_resps);
+                                    let mut v_bucket = self.bucket.lock().unwrap();
+                                    if !v_bucket.contains_key(&valid_resps.feed_count) {
+                                        v_bucket.insert(valid_resps.feed_count, Vec::<ValidateResponse>::new());
+                                    }
+                                    let round_collection = v_bucket.get_mut(&valid_resps.feed_count).unwrap();
+                                    //TODO, dedup
+                                    round_collection.push(valid_resps);
+                                    //info!("p2p bucket size:{}", v_bucket.len());
                                 },
                             }
                         } else {
@@ -117,22 +157,31 @@ impl P2PMessageProcessor {
         }
     }
 
-    fn sign_and_sendresponse(&mut self, valid_req: ValidateRequest, private_key: String) {
+    async fn sign_and_sendresponse(&mut self, valid_req: ValidateRequest, cfg: &Config) {
         debug!("validate price request {:?}", valid_req);
         let price = valid_req.price.parse::<u128>().unwrap();
-        let sig: String = eth::sign_price_info(
-            private_key.clone(),
+        let price_local = *self.last_seen_price.lock().unwrap();
+        let diff = price_local.abs_diff(price) as f64 / price as f64;
+        if diff > 0.01 {
+            warn!("price diff too large: {} vs {}", price_local, price);
+            return;
+        } else {
+            info!("price check: {} vs {}", price_local, price);
+        }
+        let (sig, signer_address) = eth::sign_price_info(
+            cfg.private_key.clone(),
             valid_req.coin.clone(),
-            price,
+            price_local,
             valid_req.timestamp,
         );
         debug!("sig:{}", sig);
         let sig_response = CommandMessage::VResp(ValidateResponse {
             coin: valid_req.coin,
-            price: price.to_string(),
-            round: valid_req.round,
+            price: price_local.to_string(),
+            feed_count: valid_req.feed_count,
             sig: sig,
             timestamp: valid_req.timestamp,
+            address: signer_address,
         });
         let sig_json = serde_json::to_string(&sig_response).unwrap();
         if let Err(err) = self.publish_txt(sig_json) {

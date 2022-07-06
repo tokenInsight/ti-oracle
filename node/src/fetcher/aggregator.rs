@@ -42,7 +42,7 @@ pub enum AggError {
 impl std::error::Error for AggError {}
 
 impl Aggregator {
-    pub async fn get_price(&self) -> Result<u128, Box<dyn Error>> {
+    pub async fn get_price(&self) -> Result<u128, Box<dyn Error + Send + Sync>> {
         let mut exchagne_names = Vec::<String>::new();
         let tasks = self
             .data_sources
@@ -54,7 +54,7 @@ impl Aggregator {
                 exchagne_names.push(ex_name.clone());
                 return result;
             });
-        let all_exchanges: Vec<Result<Vec<PairInfo>, Box<dyn Error>>> =
+        let all_exchanges: Vec<Result<Vec<PairInfo>, Box<dyn Error + Send + Sync>>> =
             future::join_all(tasks).await;
         let mut total_volume = 0 as f64;
         let mut all_pairs = Vec::<&PairInfo>::new();
@@ -62,11 +62,11 @@ impl Aggregator {
         for exchange in &all_exchanges {
             match exchange {
                 Ok(pairs) => {
-                    debug!("*** {} ***", exchagne_names[offset]);
+                    info!("*** {} ***", exchagne_names[offset]);
                     for pair in pairs {
                         total_volume += pair.volume;
                         all_pairs.push(pair);
-                        debug!(" +--- {} -> {},{}", pair.symbol, pair.price, pair.volume);
+                        info!(" +--- {} -> {},{}", pair.symbol, pair.price, pair.volume);
                     }
                 }
                 Err(err) => {
@@ -81,7 +81,7 @@ impl Aggregator {
         //if all_pairs.len() < 3 {
         //    return Err(Box::new(AggError::NoPairs("should have more than 3 pairs".into())))
         //}
-        info!("pairs count:{}", all_pairs.len());
+        debug!("pairs count:{}", all_pairs.len());
         let mut avg_price = 0.0 as f64;
         for pair in all_pairs {
             avg_price += pair.price as f64 * pair.volume / total_volume;

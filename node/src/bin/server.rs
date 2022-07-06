@@ -1,5 +1,8 @@
 use clap::{app_from_crate, crate_authors, crate_description, crate_name, crate_version};
 use env_logger::{Builder, Env};
+use ethers::prelude::u256_from_f64_saturating;
+use ethers::prelude::Address;
+use ethers::prelude::Bytes;
 use ethers::prelude::U256;
 use futures::channel::mpsc::channel;
 use futures::SinkExt;
@@ -7,12 +10,17 @@ use libp2p::Multiaddr;
 use log::{info, warn};
 use std::env;
 use std::error::Error;
+use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 use ti_node::chains;
+use ti_node::chains::eth;
+use ti_node::chains::eth::PeerPriceFeed;
 use ti_node::fetcher::aggregator;
 use ti_node::flags;
 use ti_node::processor::gossip;
-use ti_node::processor::gossip::ValidateRequest;
+use ti_node::processor::gossip::LocalCommand;
+use ti_node::processor::gossip::RefreshPrice;
 use ti_node::processor::swarm;
 use ti_node::processor::utils;
 
@@ -59,7 +67,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Err(e) => warn!("Dial {:?} failed: {:?}", address, e),
         };
     }
-    let (mut sender, receiver) = channel::<ValidateRequest>(128);
+    let (mut sender, receiver) = channel::<LocalCommand>(128);
     let mut private_key = cfg.private_key.clone();
     if private_key.starts_with("$") {
         let var_name = &private_key[1..private_key.len()];
@@ -71,51 +79,154 @@ async fn main() -> Result<(), Box<dyn Error>> {
         cfg.contract_address.clone(),
     )
     .await?;
-    let mut p2p_processor = gossip::new(swarm, topic, receiver);
-    tokio::task::spawn(async move {
-        p2p_processor.process_p2p_message(private_key.clone()).await;
+    let v_bucket = gossip::ValidationBucket::default();
+    let mut p2p_processor = gossip::new(swarm, topic, receiver, Arc::clone(&v_bucket));
+    tokio::task::spawn({
+        let mut cfg_copy = cfg.clone();
+        cfg_copy.private_key = private_key.clone();
+        async move {
+            p2p_processor.process_p2p_message(cfg_copy).await;
+        }
     });
     let agg = aggregator::new(cfg.mappings.clone());
     loop {
+        let price_result = agg.get_price().await;
+        let mut weighted_price = 0 as u128;
+        match price_result {
+            Ok(_weighted_price) => {
+                weighted_price = _weighted_price;
+            }
+            Err(err) => {
+                tokio::time::sleep(Duration::from_millis(5000)).await;
+                warn!("{}", err);
+            }
+        }
         match oracle_stub.is_my_turn().call().await {
             Ok(is_my_turn) => {
                 info!("check if it is my turn to feed? {}", is_my_turn);
                 if is_my_turn {
-                    let price_result = agg.get_price().await;
-                    match price_result {
-                        Ok(weighted_price) => {
-                            collect_signatures(&oracle_stub, &cfg, &mut sender, weighted_price)
-                                .await;
-                        }
-                        Err(err) => warn!("{}", err),
-                    }
+                    collect_signatures(
+                        &oracle_stub,
+                        &cfg,
+                        &mut sender,
+                        weighted_price,
+                        Arc::clone(&v_bucket),
+                        private_key.clone(),
+                    )
+                    .await;
                 }
+                let refresh_req = RefreshPrice {
+                    price: weighted_price.to_string(),
+                    timestamp: utils::timestamp(),
+                };
+                sender
+                    .send(LocalCommand::RefreshReq(refresh_req))
+                    .await
+                    .unwrap();
             }
             Err(err) => {
                 warn!("call contract error: {}", err);
             }
         }
-        tokio::time::sleep(Duration::from_millis(1000)).await;
+        tokio::time::sleep(Duration::from_millis(cfg.feed_interval * 1000)).await;
     }
 }
 
 async fn collect_signatures(
-    oracle_stub: &chains::eth::TIOracle<
-        ethers::prelude::SignerMiddleware<
-            ethers::prelude::Provider<ethers::prelude::Http>,
-            ethers::prelude::Wallet<ethers::prelude::k256::ecdsa::SigningKey>,
-        >,
-    >,
+    oracle_stub: &eth::OracleStub,
     cfg: &flags::Config,
-    sender: &mut futures::channel::mpsc::Sender<ValidateRequest>,
+    sender: &mut futures::channel::mpsc::Sender<LocalCommand>,
     weighted_price: u128,
+    bucket: gossip::ValidationBucket,
+    private_key: String,
 ) {
-    let last_round: U256 = oracle_stub.last_round().call().await.unwrap();
+    let feed_count: U256 = oracle_stub.feed_count().call().await.unwrap();
     let valid_request = gossip::ValidateRequest {
         coin: cfg.coin_name.clone(),
-        round: last_round.as_u64(),
+        feed_count: feed_count.as_u64(),
         timestamp: utils::timestamp(),
         price: weighted_price.to_string(), //TODO fetch from api of market
     };
-    sender.send(valid_request).await.unwrap();
+    {
+        let mut v_bucket = bucket.lock().unwrap();
+        let mut gc_keys = Vec::<u64>::new();
+        for (k, _) in v_bucket.iter() {
+            if *k < feed_count.as_u64() {
+                gc_keys.push(*k);
+            }
+        }
+        for gc_key in gc_keys {
+            v_bucket.remove(&gc_key);
+        }
+        //call p2p network to delivery validation request to other peers
+        sender
+            .send(LocalCommand::VReq(valid_request))
+            .await
+            .unwrap();
+    }
+    //wait 3 seconds, TODO: event trigger
+    tokio::time::sleep(Duration::from_millis(5000)).await; //wait for result at most 5 seconds
+    let v_bucket = bucket.lock().unwrap();
+    info!("bucket size:{}", v_bucket.len());
+    let collected_data = v_bucket.get(&feed_count.as_u64());
+    let mut peers_price = Vec::<PeerPriceFeed>::new();
+    match collected_data {
+        Some(validated_response_list) => {
+            info!(
+                "price info signed by other nodes: {:?}",
+                validated_response_list
+            );
+            for price_signed in validated_response_list {
+                let price_feed = PeerPriceFeed {
+                    peer_address: Address::from_str(price_signed.address.as_str()).unwrap(),
+                    sig: Bytes::from_str(&price_signed.sig.as_str()).unwrap(),
+                    price: U256::from(price_signed.price.parse::<u128>().unwrap()),
+                    timestamp: U256::from(price_signed.timestamp),
+                }; //TODO, fix these unwrap later
+                peers_price.push(price_feed);
+            }
+        }
+        None => {
+            warn!("no response collected")
+        }
+    }
+    //prepare self sign
+    let ts = utils::timestamp();
+    let (mysig, myaddr) = eth::sign_price_info(
+        private_key.clone(),
+        cfg.coin_name.clone(),
+        weighted_price,
+        ts,
+    );
+    let my_price_feed = PeerPriceFeed {
+        peer_address: Address::from_str(myaddr.as_str()).unwrap(),
+        sig: Bytes::from_str(mysig.as_str()).unwrap(),
+        price: U256::from(weighted_price),
+        timestamp: U256::from(ts),
+    };
+    peers_price.push(my_price_feed);
+    peers_price.sort_by_key(|d| d.price);
+    info!("before sumbit to chain: {:?}", peers_price);
+    match oracle_stub
+        .feed_price(cfg.coin_name.clone(), peers_price)
+        .gas_price(from_gwei(cfg.fee_per_gas))
+        .send()
+        .await
+    {
+        Ok(pending_tx) => {
+            let receipt = pending_tx.await;
+            if let Err(err) = receipt {
+                warn!("provider error: {}", err);
+            } else {
+                info!("tx receipt: {:?}", receipt.unwrap());
+            }
+        }
+        Err(err) => {
+            warn!("tx error: {}", err);
+        }
+    }
+}
+
+fn from_gwei(gwei: f64) -> U256 {
+    u256_from_f64_saturating(gwei * 1.0e9_f64)
 }

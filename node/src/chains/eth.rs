@@ -5,7 +5,7 @@ use std::{convert::TryFrom, sync::Arc};
 
 abigen!(TIOracle, "../contracts/out/TIOracle.sol/TIOracle.json");
 
-pub(crate) type OracleStub = TIOracle<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
+pub type OracleStub = TIOracle<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 
 //keccak256(abi.encodePacked(coin,price,timestamp))
 pub fn get_hash(coin_name: String, price: U256, timestamp: U256) -> [u8; 32] {
@@ -17,10 +17,19 @@ pub fn get_hash(coin_name: String, price: U256, timestamp: U256) -> [u8; 32] {
     ethers::utils::keccak256(packed.as_slice())
 }
 
-pub fn sign_price_info(private_key: String, coin: String, price: u128, timestamp: u64) -> String {
+// sign price feeding then return signature  and address
+pub fn sign_price_info(
+    private_key: String,
+    coin: String,
+    price: u128,
+    timestamp: u64,
+) -> (String, String) {
     let pk = private_key.parse::<LocalWallet>().unwrap();
     let msg_hash = get_hash(coin, U256::from(price), U256::from(timestamp));
-    return pk.sign_hash(H256::from(msg_hash)).to_string();
+    return (
+        pk.sign_hash(H256::from(msg_hash)).to_string(),
+        format!("{:?}", pk.address()),
+    );
 }
 
 pub async fn new(

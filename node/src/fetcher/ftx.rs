@@ -54,7 +54,10 @@ pub struct Ftx {}
 
 #[async_trait]
 impl Exchange for Ftx {
-    async fn get_pairs(&self, symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {
+    async fn get_pairs(
+        &self,
+        symbols: Vec<String>,
+    ) -> Result<Vec<PairInfo>, Box<dyn Error + Send + Sync>> {
         let request_url = format!("https://ftx.com/api/markets");
         let timeout = Duration::new(5, 0);
         let client = ClientBuilder::new().timeout(timeout).gzip(true).build()?;

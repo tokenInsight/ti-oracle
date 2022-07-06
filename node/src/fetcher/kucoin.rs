@@ -41,7 +41,10 @@ pub struct Kucoin {}
 
 #[async_trait]
 impl Exchange for Kucoin {
-    async fn get_pairs(&self, symbols: Vec<String>) -> Result<Vec<PairInfo>, Box<dyn Error>> {
+    async fn get_pairs(
+        &self,
+        symbols: Vec<String>,
+    ) -> Result<Vec<PairInfo>, Box<dyn Error + Send + Sync>> {
         let mut result = Vec::<PairInfo>::new();
         for symbol in symbols {
             let request_url = format!(

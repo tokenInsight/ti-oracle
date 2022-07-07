@@ -94,7 +94,10 @@ fn remove_outliers(mut all_pairs: Vec<&PairInfo>) -> Vec<&PairInfo> {
     let p25_price = all_pairs[p25].price;
     let p75_price = all_pairs[p75].price;
     let iqr = p75_price - p25_price;
-    let lower_bound = p25_price - (iqr * 1.5 as u128);
+    let mut lower_bound = 0;
+    if p25_price > (iqr * 1.5 as u128) {
+        lower_bound = p25_price - (iqr * 1.5 as u128);
+    }
     let upper_bound = p75_price + (iqr * 1.5 as u128);
     for pair_price in all_pairs {
         if pair_price.price < lower_bound || pair_price.price > upper_bound {
@@ -113,7 +116,11 @@ fn calc_weighted_price(
     let all_pairs = remove_outliers(all_pairs_original);
     debug!("oufter remove outliers, pairs count:{}", all_pairs.len());
     let mut avg_price = 0.0 as f64;
-    let total_volume = all_pairs.iter().map(|a| a.volume).reduce(|a, b| a + b).unwrap();
+    let total_volume = all_pairs
+        .iter()
+        .map(|a| a.volume)
+        .reduce(|a, b| a + b)
+        .unwrap();
     for pair in all_pairs {
         debug!(" ++ {}", pair.price);
         avg_price += pair.price as f64 * pair.volume / total_volume;

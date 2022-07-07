@@ -63,6 +63,35 @@ For example, assuming that our network feeds the price once per minute, there ar
 - Simply speaking, we use the smart contract as the role of Zookeeper in traditional distributed system
 
 # Developement Guide
+## Source code overview
+```
+node/src
+├── bin
+│   └── server.rs       # the entry point, core logic of node
+├── chains
+│   ├── eth.rs          # functions about crypto sigh, hash, and smart contract invoke
+│   └── mod.rs      
+├── fetcher
+│   ├── aggregator.rs   # functions about weighted price calculating, and outliers detection
+│   ├── balancer.rs     # to be done
+│   ├── binance.rs      # fetching data from Binance
+│   ├── coinbase.rs     # fetching data from Coinbase
+│   ├── curve.rs        # to be done
+│   ├── ftx.rs          # fetching data from FTx
+│   ├── kucoin.rs       # fetching data from Kucoin
+│   ├── mod.rs
+│   ├── okex.rs         # to be done
+│   ├── uniswapv2.rs    # to be done
+│   └── uniswapv3.rs    # fetching data from uniswap v3
+├── flags.rs            # command line flags & configuration options
+├── lib.rs
+└── processor           # network processors
+    ├── gossip.rs       # p2p gossip messages handlers
+    ├── mod.rs
+    ├── swarm.rs        # setup swarm for serving p2p node
+    └── utils.rs        # some utility functions
+
+```
 ## Run unit test for smart contracts
 - firstly, install foundry: `curl -L https://foundry.paradigm.xyz | bash`
 - cd contract && forge test --gas-report

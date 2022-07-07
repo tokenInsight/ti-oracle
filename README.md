@@ -32,7 +32,35 @@
 - start the node
   - `ti-node -c config/node.yaml`
   - explaining for the configuration file
-  - TODO
+```
+    listen_address : /ip4/0.0.0.0/tcp/0 #p2p listen address, ${ip}/tcp/${port}, if port is zero, random port will be used
+    log_level: info #trace level
+    eth_rpc_url: https://polygon-rpc.com  #RPC URL of Ethereum chain
+    price_topic: BITCOIN  #p2p message topic, use sperated topic for each coin price feeding
+    contract_address: 0xe1489011fac9506011fb8c089ee2dda1568607cb  #smart contract address
+    coin_name: bitcoin  #coin name flag which should be same as the one specified in contract
+    private_key: $NODE_PRIVATE_KEY  #enviroment variables contains wallet key
+    feed_interval: 60 #the interval in seconds between twice pricing feeding
+    fee_per_gas: 65 #suggested max fee per gas
+    mappings: #trading pairs used of CEX & DEX to aggrate price
+      binance:
+        - BTCUSDC
+        - BTCUSDT
+      coinbase:
+        - BTC-USD
+        - BTC-USDC
+      uniswapv3:
+        - 0x99ac8ca7087fa4a2a1fb6357269965a2014abc35
+        - 0x9db9e0e53058c89e5b94e29621a205198648425b
+      ftx:
+        - BTC/USD
+        - BTC/USDT
+      kucoin:
+        - BTC-USDT
+        - BTC-USDC
+    peers:  #specify some bootstrap nodes, one for each line
+      - ""
+```
 - join the network
   - use `--peers` to specify bootstrap nodes with the IPFS-style address sperated by `,`
   - e.g. `ti-node --peers /ip4/192.168.10.228/tcp/55909`

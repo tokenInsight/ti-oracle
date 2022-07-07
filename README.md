@@ -2,8 +2,10 @@
 
 ![ci workflow](https://github.com/tokeninsight/ti-oracle/actions/workflows/basic.yml/badge.svg)
 
-# A scafford to build your own oracle network
+# Build your own oracle network
+For various DeFi protocols, the price of encrypted assets is very important. It is a signal that determines subsequent operations, such as the liquidation of collateral assets.
 
+Nowadays, popular oracles in the industry, such as Chainlink, have not yet solved the problem of the accuracy of price data. The fundamental reason is that their "price feed nodes" do not use fresh data. These data are provided by centralized data such as coingecko. Provided by merchants, Chainlink's DON only solves the problem of a few price-feeding nodes doing evil.
 
 # Developement Guide
 ## Run unit test for smart contracts
@@ -50,12 +52,12 @@ Test result: ok. 5 passed; 0 failed; finished in 6.83ms
   - `forge create TIOracle --rpc-url=https://polygon-rpc.com --interactive --constructor-args bitcoin 5 300 --gas-price 65000000000`
   - you can deploy the `contracts/src/TIOracle.sol` in any ways you like, and `forge` is just one choice
   
-- meaning for the above constructor arguments
+- meaning of the above constructor arguments
   - pricing feeding is for `bitcoin`
   - feed `5` times each round
   - timeout for one round is 300 seconds
   
-- adding address of the transmission nodes:
+- adding address of the permitted transmission nodes
   - call this method of the contract `addNode(address newNode)`
   - you can do this by your wallet connected to etherscan
   - Or, you can use the tool `cast`, as the following command

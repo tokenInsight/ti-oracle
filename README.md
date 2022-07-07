@@ -11,7 +11,7 @@ Nowadays, popular oracles in the industry, such as Chainlink, have not yet solve
 
 ## Solution to build your own oracle
 We provider two components: oracle-node and oracle-contract.
-- Oracle-node is used to build a p2p network, in which all the nodes send crypto price to blockchain in a round-robin way. They crawl trading pair's price from specified exchange and DEX, and then aggragate the data to calculate a price weighted by trading volumes.
+- Oracle-node is used to build up a p2p network, in which all the nodes send crypto price to blockchain in a round-robin way. They crawl trading pair's price from specified exchange and DEX, and then aggragate the data to calculate a price weighted by trading volumes.
 - Oracle-contract is used to store the price on blockchain, and used to mantain the permitted node list for oracle network
 
 ## Architecture Overview

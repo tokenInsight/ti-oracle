@@ -1,4 +1,4 @@
-# ti-oracle
+# TokenInsight Oracle 
 
 ![ci workflow](https://github.com/tokeninsight/ti-oracle/actions/workflows/basic.yml/badge.svg)
 
@@ -27,5 +27,8 @@
 - export NODE_PRIVATE_KEY=${you private key}
 - cargo run --bin ti-node
 
-# Polygon demo
-- https://polygonscan.com/address/0xe1489011fac9506011fb8c089ee2dda1568607cb
+# Some Onchain Demo
+- Bitcoin Spot Price
+  - https://polygonscan.com/address/0xe1489011fac9506011fb8c089ee2dda1568607cb
+- ETH Spot Price
+  - TODO

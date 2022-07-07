@@ -94,7 +94,7 @@ Test result: ok. 5 passed; 0 failed; finished in 6.83ms
     #suggested max fee per gas
     fee_per_gas: 65
 
-    #trading pairs used of CEX & DEX to aggrate price
+    #trading pairs used from CEX & DEX to aggragate price
     mappings:
       binance:
         - BTCUSDC

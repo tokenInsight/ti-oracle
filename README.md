@@ -26,9 +26,16 @@
 
 ## start transmission node
 - cargo test --noCapture
-- cd node
+- cd node && cargo build
+  - the binary will be built under the directory `target/debug`
 - export NODE_PRIVATE_KEY=${you private key}
-- cargo run --bin ti-node
+- start the node
+  - `ti-node -c config/node.yaml`
+  - explaining for the configuration file
+  - TODO
+- join the network
+  - use `--peers` to specify bootstrap nodes with the IPFS-style address sperated by `,`
+  - e.g. `ti-node --peers /ip4/192.168.10.228/tcp/55909`
 
 # Some Onchain Demo
 - Bitcoin Spot Price

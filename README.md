@@ -17,6 +17,36 @@ We provider two components: oracle-node and oracle-contract.
 ## Architecture Overview
 ![image](https://user-images.githubusercontent.com/167837/177757017-bfc35f14-6d32-4f1d-8db9-5d1febab1baf.png)
 
+## Price-feeding scheduling algorithm
+
+Suppose we maintain a counter for how many times have feeded, as a variable `N`. 
+- a variable `T`, which specify how many times one node can feed in each round.
+- a variable `M`, which specify how many nodes in the network are permiteed to do price feeding works.
+- Then, the correct leader should be `nodes[(N / T) % M]`
+
+For example, assuming that our network feeds the price once per minute, there are a total of 3 price feeding nodes: a, b, c, each node can be fed 5 times in a row, then the normal sequence is:
+```
++--------+--------+--------+
+| #Count | #Round | Leader |
++--------+--------+--------+
+|      0 |      0 | a      |
+|      1 |      0 | a      |
+|      2 |      0 | a      |
+|      3 |      0 | a      |
+|      4 |      0 | a      |
+|      5 |      1 | b      |
+|      6 |      1 | b      |
+|      7 |      1 | b      |
+|      8 |      1 | b      |
+|      9 |      1 | c      |
+|     10 |      2 | c      |
+|     11 |      2 | c      |
+|     12 |      2 | c      |
+|     13 |      2 | c      |
+|     14 |      2 | c      |
++--------+--------+--------+
+
+```
 
 # Developement Guide
 ## Run unit test for smart contracts

@@ -15,6 +15,7 @@ We provider two components: oracle-node and oracle-contract.
 - Oracle-contract is used to store the price on blockchain, and used to mantain the permitted node list for oracle network
 
 ## Architecture Overview
+![image](https://user-images.githubusercontent.com/167837/177757017-bfc35f14-6d32-4f1d-8db9-5d1febab1baf.png)
 
 
 # Developement Guide

@@ -81,16 +81,45 @@ impl Aggregator {
         if total_volume < 1.0 {
             return Err(Box::new(AggError::NoEnoughVolumes(total_volume)));
         }
-        //if all_pairs.len() < 3 {
-        //    return Err(Box::new(AggError::NoPairs("should have more than 3 pairs".into())))
-        //}
-        debug!("pairs count:{}", all_pairs.len());
-        let mut avg_price = 0.0 as f64;
-        for pair in all_pairs {
-            avg_price += pair.price as f64 * pair.volume / total_volume;
-        }
-        Ok(avg_price as u128)
+        calc_weighted_price(all_pairs)
     }
+}
+
+fn remove_outliers(mut all_pairs: Vec<&PairInfo>) -> Vec<&PairInfo> {
+    let mut result = Vec::<&PairInfo>::new();
+    all_pairs.sort_by_key(|d| d.price);
+    let n = all_pairs.len();
+    let p25 = (n as f64 * 0.25) as usize;
+    let p75 = (n as f64 * 0.75) as usize;
+    let p25_price = all_pairs[p25].price;
+    let p75_price = all_pairs[p75].price;
+    let iqr = p75_price - p25_price;
+    let lower_bound = p25_price - (iqr * 1.5 as u128);
+    let upper_bound = p75_price + (iqr * 1.5 as u128);
+    for pair_price in all_pairs {
+        if pair_price.price < lower_bound || pair_price.price > upper_bound {
+            warn!("outlier skipped: {:?}", pair_price);
+            continue;
+        }
+        result.push(pair_price);
+    }
+    result
+}
+
+fn calc_weighted_price(
+    all_pairs_original: Vec<&PairInfo>,
+) -> Result<u128, Box<dyn Error + Send + Sync>> {
+    debug!("pairs count:{}", all_pairs_original.len());
+    let all_pairs = remove_outliers(all_pairs_original);
+    debug!("oufter remove outliers, pairs count:{}", all_pairs.len());
+    let mut avg_price = 0.0 as f64;
+    let total_volume = all_pairs.iter().map(|a| a.volume).reduce(|a, b| a + b).unwrap();
+    for pair in all_pairs {
+        debug!(" ++ {}", pair.price);
+        avg_price += pair.price as f64 * pair.volume / total_volume;
+    }
+    debug!("avg : {}", avg_price);
+    Ok(avg_price as u128)
 }
 
 #[cfg(test)]

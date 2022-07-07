@@ -18,8 +18,11 @@
   - feed `5` times each round
   - timeout for one round is 300 seconds
   
-- add address of transmission nodes:
+- adding address of the transmission nodes:
   - call this method of the contract `addNode(address newNode)`
+  - you can do this by your wallet connected to etherscan
+  - Or, you can use the tool `cast`, as the following command
+    - `cast send --rpc-url https://polygon-rpc.com ${contract_address} 'addNode(address newNode)' ${node_address} --private-key=$NODE_PRIVATE_KEY --gas-price ${gas_price}`
 
 ## start transmission node
 - cargo test --noCapture

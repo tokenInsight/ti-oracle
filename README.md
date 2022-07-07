@@ -11,6 +11,7 @@
 
 - for example, we deploy a contract for Bitcoin price feeding
   - `forge create TIOracle --rpc-url=https://polygon-rpc.com --interactive --constructor-args bitcoin 5 300 --gas-price 65000000000`
+  - you can deploy the `contracts/src/TIOracle.sol` in any ways you like, and `forge` is just one choice
   
 - explain the above constructor arguments:
   - pricing feeding is for `bitcoin`

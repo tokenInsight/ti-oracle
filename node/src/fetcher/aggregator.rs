@@ -66,7 +66,10 @@ impl Aggregator {
                     for pair in pairs {
                         total_volume += pair.volume;
                         all_pairs.push(pair);
-                        info!(" +--- {} -> {},{}", pair.symbol, pair.price, pair.volume);
+                        info!(
+                            " +--- {} -> {} vol:{}",
+                            pair.symbol, pair.price, pair.volume
+                        );
                     }
                 }
                 Err(err) => {

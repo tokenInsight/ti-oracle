@@ -7,7 +7,7 @@ use ethers::prelude::U256;
 use futures::channel::mpsc::channel;
 use futures::SinkExt;
 use libp2p::Multiaddr;
-use log::{info, warn};
+use log::{debug, info, warn};
 use std::env;
 use std::error::Error;
 use std::str::FromStr;
@@ -23,6 +23,7 @@ use ti_node::processor::gossip::LocalCommand;
 use ti_node::processor::gossip::RefreshPrice;
 use ti_node::processor::swarm;
 use ti_node::processor::utils;
+use tokio::time;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -89,6 +90,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     });
     let agg = aggregator::new(cfg.mappings.clone());
+    let mut interval = time::interval(Duration::from_millis(cfg.feed_interval * 1000));
     loop {
         let price_result = agg.get_price().await;
         let mut weighted_price = 0 as u128;
@@ -128,7 +130,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 warn!("call contract error: {}", err);
             }
         }
-        tokio::time::sleep(Duration::from_millis(cfg.feed_interval * 1000)).await;
+        info!("wait a moment to start next feeding");
+        interval.tick().await;
     }
 }
 
@@ -206,7 +209,7 @@ async fn collect_signatures(
     };
     peers_price.push(my_price_feed);
     peers_price.sort_by_key(|d| d.price);
-    info!("before sumbit to chain: {:?}", peers_price);
+    info!("data will be committed: {:?}", peers_price);
     match oracle_stub
         .feed_price(cfg.coin_name.clone(), peers_price)
         .gas_price(from_gwei(cfg.fee_per_gas))
@@ -218,7 +221,10 @@ async fn collect_signatures(
             if let Err(err) = receipt {
                 warn!("provider error: {}", err);
             } else {
-                info!("tx receipt: {:?}", receipt.unwrap());
+                let result = receipt.unwrap().unwrap();
+                debug!("tx receipt: {:?}", result);
+                info!("transaction id: {:?}", result.transaction_hash);
+                info!("gas used: {:?}", result.gas_used);
             }
         }
         Err(err) => {

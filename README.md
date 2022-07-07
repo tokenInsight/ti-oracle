@@ -65,6 +65,10 @@ For example, assuming that our network feeds the price once per minute, there ar
 # Developement Guide
 ## Source code overview
 ```
+contracts/src
+└── TIOracle.sol        # smart contract of TokenInsight oracle
+contracts/test
+└── TIOracle.t.sol      # unit test for smart contract
 node/src
 ├── bin
 │   └── server.rs       # the entry point, core logic of node

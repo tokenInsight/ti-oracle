@@ -17,7 +17,14 @@ We provider two components: oracle-node and oracle-contract.
 ## Architecture Overview
 ![image](https://user-images.githubusercontent.com/167837/177757017-bfc35f14-6d32-4f1d-8db9-5d1febab1baf.png)
 
-## Price-feeding scheduling algorithm
+## Price-feeding  algorithm
+The basic scheduling is in a round-robbin way, each node can do feeding servral times one by one.
+In each round,one node is selected as leader, who is responsible for collecting price observed by other nodes, and make a summary to commit data into smart contract.
+The leader do the following tasks:
+- verify the signatures in the message sent from other nodes
+- check the diffrence between price observed by other nodes and local
+- remove the price data recognized to be outliers
+- caculate the price weighted by the trading volumes
 
 Suppose we maintain a counter for how many times have feeded, as a variable `N`. 
 - a variable `T`, which specify how many times one node can feed in each round.

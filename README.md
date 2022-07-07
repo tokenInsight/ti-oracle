@@ -24,6 +24,7 @@ The leader do the following tasks:
 - verify the signatures in the message sent from other nodes
 - check the diffrence between price observed by other nodes and local
 - remove the price data recognized to be outliers
+  - outliers detection details: https://github.com/tokenInsight/ti-oracle/blob/main/node/src/fetcher/aggregator.rs#L88
 - caculate the price weighted by the trading volumes
 
 Suppose we maintain a counter for how many times have feeded, as a variable `N`. 

@@ -2,6 +2,9 @@
 
 ![ci workflow](https://github.com/tokeninsight/ti-oracle/actions/workflows/basic.yml/badge.svg)
 
+# A scafford to build your own oracle network
+
+
 # Developement Guide
 ## Run unit test for smart contracts
 - firstly, install foundry: `curl -L https://foundry.paradigm.xyz | bash`
@@ -47,7 +50,7 @@ Test result: ok. 5 passed; 0 failed; finished in 6.83ms
   - `forge create TIOracle --rpc-url=https://polygon-rpc.com --interactive --constructor-args bitcoin 5 300 --gas-price 65000000000`
   - you can deploy the `contracts/src/TIOracle.sol` in any ways you like, and `forge` is just one choice
   
-- explaining for the above constructor arguments
+- meaning for the above constructor arguments
   - pricing feeding is for `bitcoin`
   - feed `5` times each round
   - timeout for one round is 300 seconds

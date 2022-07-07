@@ -3,9 +3,9 @@
 ![ci workflow](https://github.com/tokeninsight/ti-oracle/actions/workflows/basic.yml/badge.svg)
 
 # Build your own oracle network
-For various DeFi protocols, the price of encrypted assets is very important. It is a signal that determines subsequent operations, such as the liquidation of collateral assets.
+For DeFi protocols, the price of encrypted assets is very important,which is a signal that determines subsequent operations, such as the liquidation of collateral assets.
 
-Nowadays, popular oracles in the industry, such as Chainlink, have not yet solved the problem of the accuracy of price data. The fundamental reason is that their "price feed nodes" do not use fresh data. These data are provided by centralized data such as coingecko. Provided by merchants, Chainlink's DON only solves the problem of a few price-feeding nodes doing evil.
+Nowadays, popular oracles in the industry, such as Chainlink, have not yet solved the problem of the accuracy of price data. The fundamental reason is that their feeding nodes do not use fresh data. These data are provided by centralized vendor such as coingecko. Chainlink's DON only solves the problem of preventing feeding nodes doing evil.
 
 # Developement Guide
 ## Run unit test for smart contracts

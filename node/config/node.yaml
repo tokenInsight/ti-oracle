@@ -11,7 +11,7 @@ eth_rpc_url: https://polygon-rpc.com
 price_topic: BITCOIN
 
 #smart contract address
-contract_address: 0xe1489011fac9506011fb8c089ee2dda1568607cb
+contract_address: 0x84e2e15c603fa7649a33106b52bc2081163e588e
 
 #coin name flag which should be same as the one specified in contract
 coin_name: bitcoin

@@ -126,12 +126,18 @@ contract ContractTest is Test {
     function testKickNode() public {
         Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
         testRoundOwner();
+        bool allowed = tiOracle.queryNode(nodeC);
+        assertEq(allowed, true);
         vm.prank(nodeA);
         tiOracle.kickNode(nodeC);
         vm.prank(nodeB);
         tiOracle.kickNode(nodeC);
+        allowed = tiOracle.queryNode(nodeC);
+        assertEq(allowed, true);
         vm.prank(nodeC);
         tiOracle.kickNode(nodeC);
+        allowed = tiOracle.queryNode(nodeC);
+        assertEq(allowed, false);
     }
 
     function testVerify() public {

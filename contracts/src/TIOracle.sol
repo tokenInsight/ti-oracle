@@ -54,6 +54,11 @@ contract TIOracle {
         return lastPrice;
     }
 
+    // queryNode returns whether the node is allowed to feed price
+    function queryNode(address addr) public view returns (bool) {
+        return nodesOffset[addr] > 0;
+    }
+
     //  decide next valid node to feed price, in a round-robbin way
     function decideValidNode(uint256 roundNo) public view returns (address) {
         require(nodes.length > 0, "list of transmission nodes is empty");

@@ -135,6 +135,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
+// collect signatures from other nodes, and then commit transaction to blockchain
 async fn collect_signatures(
     oracle_stub: &eth::OracleStub,
     cfg: &flags::Config,
@@ -167,7 +168,6 @@ async fn collect_signatures(
             .await
             .unwrap();
     }
-    //wait 3 seconds, TODO: event trigger
     tokio::time::sleep(Duration::from_millis(5000)).await; //wait for result at most 5 seconds
     let v_bucket = bucket.lock().unwrap();
     info!("bucket size:{}", v_bucket.len());
@@ -180,12 +180,38 @@ async fn collect_signatures(
                 validated_response_list
             );
             for price_signed in validated_response_list {
+                let verify_result = eth::verify_sig(
+                    price_signed.sig.clone(),
+                    price_signed.coin.clone(),
+                    price_signed.price.parse::<u128>().unwrap_or_else(|_| 0),
+                    price_signed.timestamp,
+                    price_signed.address.clone(),
+                );
+                if !verify_result {
+                    warn!("verify signature failed from {:}", price_signed.address);
+                    continue;
+                }
                 let price_feed = PeerPriceFeed {
                     peer_address: Address::from_str(price_signed.address.as_str()).unwrap(),
                     sig: Bytes::from_str(&price_signed.sig.as_str()).unwrap(),
                     price: U256::from(price_signed.price.parse::<u128>().unwrap()),
                     timestamp: U256::from(price_signed.timestamp),
-                }; //TODO, fix these unwrap later
+                };
+                let allowed = oracle_stub
+                    .query_node(price_feed.peer_address)
+                    .call()
+                    .await
+                    .unwrap_or_else(|err| {
+                        warn!("query node err: {:?}", err);
+                        false
+                    });
+                if !allowed {
+                    warn!(
+                        "price report from unexpected node:{:?}",
+                        price_feed.peer_address
+                    );
+                    continue;
+                }
                 peers_price.push(price_feed);
             }
         }

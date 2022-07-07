@@ -1,6 +1,8 @@
 use ethers::prelude::{k256::ecdsa::SigningKey, *};
 use eyre::Result;
+use log::warn;
 use std::error::Error;
+use std::str::FromStr;
 use std::{convert::TryFrom, sync::Arc};
 
 abigen!(TIOracle, "../contracts/out/TIOracle.sol/TIOracle.json");
@@ -30,6 +32,25 @@ pub fn sign_price_info(
         pk.sign_hash(H256::from(msg_hash)).to_string(),
         format!("{:?}", pk.address()),
     );
+}
+
+// verify signature
+pub fn verify_sig(sig: String, coin: String, price: u128, timestamp: u64, address: String) -> bool {
+    let sig_obj = Signature::from_str(sig.as_str());
+    if let Err(sig_err) = sig_obj {
+        warn!("signature verify error: {:?}", sig_err);
+        return false;
+    }
+    let address_result = Address::from_str(address.as_str());
+    if let Err(addr_err) = address_result {
+        warn!("address error: {:?}", addr_err);
+        return false;
+    }
+    let content_hash = get_hash(coin, U256::from(price), U256::from(timestamp));
+    sig_obj
+        .unwrap()
+        .verify(content_hash, address_result.unwrap())
+        .is_ok()
 }
 
 pub async fn new(

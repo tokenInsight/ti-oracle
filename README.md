@@ -5,7 +5,7 @@
 # Build your own oracle network
 
 ## Why we need yet another oracle?
-For DeFi protocols, the price of encrypted assets is very important, which is a signal that determines subsequent operations, such as the liquidation of collateral assets.
+For DeFi protocols, the price of crypto assets is very important, which is a signal that determines subsequent operations, such as the liquidation of collateral assets.
 
 Nowadays, popular oracles in the industry, such as Chainlink, have not yet solved the problem of the accuracy of price data. The fundamental reason is that their feeding nodes do not use fresh data. These data are provided by centralized vendor such as coingecko. Chainlink's DON only solves the problem of preventing feeding nodes doing evil.
 

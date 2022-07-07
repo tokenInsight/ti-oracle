@@ -235,7 +235,11 @@ async fn collect_signatures(
     };
     peers_price.push(my_price_feed);
     peers_price.sort_by_key(|d| d.price);
-    info!("data will be committed: {:?}", peers_price);
+    debug!("data will be committed: {:?}", peers_price);
+    info!("commit {} items of price to blockchain", &peers_price.len());
+    for price_info in &peers_price {
+        info!("{} -> price: {}", price_info.peer_address, price_info.price);
+    }
     match oracle_stub
         .feed_price(cfg.coin_name.clone(), peers_price)
         .gas_price(from_gwei(cfg.fee_per_gas))

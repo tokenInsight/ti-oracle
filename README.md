@@ -56,6 +56,11 @@ For example, assuming that our network feeds the price once per minute, there ar
 
 ```
 
+## What-if one node is crashed or disconnected?
+Each round should have a timeout of do feeding. If the time passed between last update-time and the current block.timestamp, then any node in the permitteed list can do feeding.
+The details can be checked in the source code of smart contract: https://github.com/tokenInsight/ti-oracle/blob/main/contracts/src/TIOracle.sol#L69
+
+
 # Developement Guide
 ## Run unit test for smart contracts
 - firstly, install foundry: `curl -L https://foundry.paradigm.xyz | bash`

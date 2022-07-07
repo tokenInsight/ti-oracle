@@ -8,5 +8,8 @@
 
 # start transmission node
 - cargo test --noCapture
-- cd node && cargo build
-- ./target/debug/ti-node
+- cd node
+- cargo run --bin ti-node
+
+# Polygon demo
+- https://polygonscan.com/address/0xf3787681d966249eb4dec209227460c269c2052a

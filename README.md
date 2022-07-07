@@ -83,7 +83,7 @@
       - ""
 ```
 - join the network
-  - use `--peers` to specify bootstrap nodes with the IPFS-style address sperated by `,`
+  - use `--peers` to specify bootstrap nodes with the IPFS-style address sperated by comma
   - e.g. `ti-node --peers /ip4/192.168.10.228/tcp/55909`
 
 # Some Onchain Demo

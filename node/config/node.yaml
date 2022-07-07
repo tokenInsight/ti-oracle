@@ -2,7 +2,7 @@ listen_address : /ip4/0.0.0.0/tcp/0
 log_level: info
 eth_rpc_url: https://polygon-rpc.com
 price_topic: BITCOIN
-contract_address: 0xf3787681d966249eb4dec209227460c269c2052a
+contract_address: 0xe1489011fac9506011fb8c089ee2dda1568607cb
 coin_name: bitcoin
 private_key: $NODE_PRIVATE_KEY
 feed_interval: 60

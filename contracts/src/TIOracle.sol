@@ -21,7 +21,7 @@ contract TIOracle {
     event NodeKicked(address removedNode);
     event PriceFeed(uint256 round, PriceInfo info);
     // Coin name
-    string coin;
+    string public coin;
     // last updated price, with timestamp
     PriceInfo public lastPrice;
     // last round

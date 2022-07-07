@@ -205,6 +205,12 @@ Test result: ok. 5 passed; 0 failed; finished in 6.83ms
     peers:
       - ""
 ```
+when you start one node sucessfully, you will get the following logs on your terminal:
+
+![image](https://user-images.githubusercontent.com/167837/177766326-848d1d10-24c6-48f6-823e-3dbb2b1cf7aa.png)
+
+use `export RUST_LOG=debug`, if you want more tracing details.
+
 - join the network
   - use `--peers` to specify bootstrap nodes with the IPFS-style address sperated by comma
   - e.g. `ti-node --peers /ip4/192.168.10.228/tcp/55909`

@@ -29,8 +29,8 @@ The leader do the following tasks:
 - caculate the price weighted by the trading volumes
 
 ## Price Concatenation Calculation Expression
-- oracle node can configure trading pairs for calculating the price using the same quote, like USDC, USD, and etc.
-- configuration file can parse simple concatenation expression, using multiplication and division
+- oracle node has configuration of calculating the price with trading pairs using the same quote, like USDC, USD, and etc.
+- simple concatenation expression is supported, with two operators: multiplication and division
 - for example
   - if an exchange only provides the price ofr two pairs:`WBTC/ETH`, `ETH/USDC`, but we want use USDC as quote
   - a concatenation expression could be used as, `WBTC/ETH mul ETH/USDC`

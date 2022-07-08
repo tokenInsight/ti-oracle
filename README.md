@@ -18,16 +18,6 @@ We provider a solution to build up your own oracle, which is comprised of two co
 ## Architecture Overview
 ![image](https://user-images.githubusercontent.com/167837/177757017-bfc35f14-6d32-4f1d-8db9-5d1febab1baf.png)
 
-## Price-feeding  algorithm
-The basic scheduling is in a round-robbin way, each node can do feeding servral times one by one.
-In each round,one node is selected as leader, who is responsible for collecting price observed by other nodes, and make a summary to commit data into smart contract.
-The leader do the following tasks:
-- verify the signatures in the message sent from other nodes
-- check the diffrence between price observed by other nodes and local
-- remove the price data recognized to be outliers
-  - outliers detection details: https://github.com/tokenInsight/ti-oracle/blob/main/node/src/fetcher/aggregator.rs#L88
-- caculate the price weighted by the trading volumes
-
 ## Price Concatenation Calculation Expression
 - oracle node has configuration of calculating the price with trading pairs using the same quote, like USDC, USD, and etc.
 - simple concatenation expression is supported, with two operators: multiplication and division
@@ -36,6 +26,16 @@ The leader do the following tasks:
   - a concatenation expression could be used as, `WBTC/ETH mul ETH/USDC`
   - another example, if `WBTC/USDT` and `USDT/USDC` are provided, and we want the quote to be USDC
   - then, use an expression as `WBTC/USDT div USDT/USDC`
+
+## Price-feeding  scheduling
+The basic scheduling is in a round-robbin way, each node can do feeding servral times one by one.
+In each round,one node is selected as leader, who is responsible for collecting price observed by other nodes, and make a summary to commit data into smart contract.
+The leader do the following tasks:
+- verify the signatures in the message sent from other nodes
+- check the diffrence between price observed by other nodes and local
+- remove the price data recognized to be outliers
+  - outliers detection details: https://github.com/tokenInsight/ti-oracle/blob/main/node/src/fetcher/aggregator.rs#L88
+- caculate the price weighted by the trading volumes
 
 Suppose we maintain a counter for how many times have feeded, as a variable `N`. 
 - a variable `T`, which specify how many times one node can feed in each round.
@@ -72,6 +72,7 @@ For example, assuming that our network feeds the price once per minute, there ar
 - If the time passed between last feeding and the current block.timestamp, then any node in the permitteed list can do feeding.
 - The details can be checked in the source code of smart contract: https://github.com/tokenInsight/ti-oracle/blob/main/contracts/src/TIOracle.sol#L69
 - Simply speaking, we use the smart contract as the role of Zookeeper in traditional distributed system
+
 
 # Developement Guide
 ## Source code overview
@@ -223,7 +224,7 @@ Test result: ok. 5 passed; 0 failed; finished in 6.83ms
 ```
 when you start one node sucessfully, you will get the following logs on your terminal:
 
-![image](https://user-images.githubusercontent.com/167837/177766326-848d1d10-24c6-48f6-823e-3dbb2b1cf7aa.png)
+![image](https://user-images.githubusercontent.com/167837/177996801-77c5e60a-3415-42e4-a891-cfa5dc6e7f6a.png)
 
 use `export RUST_LOG=debug`, if you want more tracing details.
 

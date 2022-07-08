@@ -87,7 +87,7 @@ impl Aggregator {
 
 fn remove_outliers(mut all_pairs: Vec<&PairInfo>) -> Vec<&PairInfo> {
     let mut result = Vec::<&PairInfo>::new();
-    all_pairs.sort_by(|a,b| a.price.partial_cmp(&b.price).unwrap());
+    all_pairs.sort_by(|a, b| a.price.partial_cmp(&b.price).unwrap());
     let n = all_pairs.len();
     let p25 = (n as f64 * 0.25) as usize;
     let p75 = (n as f64 * 0.75) as usize;

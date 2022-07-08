@@ -82,9 +82,15 @@ impl Symbol {
                 continue;
             }
             if cur_op.eq("") || cur_op.eq("mul") {
-                acc = acc * value_table[seg];
+                acc = acc
+                    * value_table
+                        .get(seg)
+                        .expect(format!("{} not found", seg).as_str());
             } else if cur_op.eq("div") {
-                acc = acc / value_table[seg];
+                acc = acc
+                    / value_table
+                        .get(seg)
+                        .expect(format!("{} not found", seg).as_str());
             } else {
                 return None;
             }

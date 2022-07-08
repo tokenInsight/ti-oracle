@@ -24,6 +24,7 @@ use ti_node::processor::gossip::RefreshPrice;
 use ti_node::processor::swarm;
 use ti_node::processor::utils;
 use tokio::time;
+use tokio::time::timeout;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -93,26 +94,52 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut interval = time::interval(Duration::from_millis(cfg.feed_interval * 1000));
     loop {
         let price_result = agg.get_price().await;
-        let mut weighted_price = 0 as u128;
+        let weighted_price: u128;
         match price_result {
             Ok(_weighted_price) => {
                 weighted_price = _weighted_price;
             }
             Err(err) => {
                 tokio::time::sleep(Duration::from_millis(5000)).await;
-                warn!("{}", err);
+                warn!("get price from exchange fail; {}", err);
+                continue;
             }
         }
-        match oracle_stub.is_my_turn().call().await {
+        core_loop(
+            &oracle_stub,
+            &cfg,
+            &mut sender,
+            weighted_price,
+            private_key.clone(),
+            &v_bucket,
+        )
+        .await;
+        info!("wait a moment to start next feeding");
+        interval.tick().await;
+    }
+}
+
+//core logic
+async fn core_loop(
+    oracle_stub: &eth::OracleStub,
+    cfg: &flags::Config,
+    sender: &mut futures::channel::mpsc::Sender<LocalCommand>,
+    weighted_price: u128,
+    private_key: String,
+    v_bucket: &gossip::ValidationBucket,
+) {
+    let check_turn = timeout(Duration::from_millis(5000), oracle_stub.is_my_turn().call()).await;
+    match check_turn {
+        Ok(check_result) => match check_result {
             Ok(is_my_turn) => {
                 info!("check if it is my turn to feed? {}", is_my_turn);
                 if is_my_turn {
                     collect_signatures(
-                        &oracle_stub,
-                        &cfg,
-                        &mut sender,
+                        oracle_stub,
+                        cfg,
+                        sender,
                         weighted_price,
-                        Arc::clone(&v_bucket),
+                        Arc::clone(v_bucket),
                         private_key.clone(),
                     )
                     .await;
@@ -129,9 +156,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Err(err) => {
                 warn!("call contract error: {}", err);
             }
+        },
+        Err(timeout_err) => {
+            warn!("timeout err: {:?}", timeout_err);
         }
-        info!("wait a moment to start next feeding");
-        interval.tick().await;
     }
 }
 

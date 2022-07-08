@@ -2,7 +2,7 @@
 
 ![ci workflow](https://github.com/tokeninsight/ti-oracle/actions/workflows/basic.yml/badge.svg)
 
-# Build your own oracle network
+# Build dedicated oracle
 
 ## Why people need yet another oracle?
 For DeFi protocols, the price of crypto assets is very important, because price is a signal that determines subsequent operations, such as the liquidation of collateral assets.

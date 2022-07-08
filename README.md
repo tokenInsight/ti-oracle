@@ -5,44 +5,43 @@
 # Build your own oracle network
 
 ## Why people need yet another oracle?
-For DeFi protocols, the price of crypto assets is very important, which is a signal that determines subsequent operations, such as the liquidation of collateral assets.
+For DeFi protocols, the price of crypto assets is very important, because price is a signal that determines subsequent operations, such as the liquidation of collateral assets.
 
-Nowadays, popular oracles in the industry, such as Chainlink, have not yet solved the problem of the accuracy of price data. The fundamental reason is that their feeding nodes do not use fresh data. These data are provided by centralized vendor such as coingecko. Chainlink's DON only solves the problem of preventing feeding nodes doing evil.
+However, popular oracles in the industry, such as Chainlink, have not yet solved the problem of the accuracy of price data. The fundamental reason is that their feeding nodes do not use fresh data. The data are provided by centralized vendor such as coingecko. Chainlink only solves the problem of preventing feeding nodes doing evil.  That is not enough to reducing the security risk.
 
-## Solution to build your own oracle
+## Solution to build dedicated oracle
 For critical DeFi application, relying on third-party price is dangerous, project owner must build their own feeding network with their partners.
-We provider a solution to build up dedicated oracle, which is comprised of two components: oracle-node and oracle-contract.
-- Oracle-node is used to build up a p2p network, in which all the nodes send crypto price to blockchain in a round-robin way. They crawl trading pair's price from specified exchange and DEX, and then aggragate the data to calculate a price weighted by trading volumes.
-- Oracle-contract is used to store the price on blockchain, and used to mantain the permitted node list for oracle network
+We provider a solution to build up dedicated oracle networks, which are comprised of two components: oracle-node and oracle-contract.
+- Oracle-node is used to build up a p2p network, in which all the nodes commit price data into blockchain in a round-robin way. They crawl trading pair's price from self specified exchanges and trading-pairs, and then aggragate the data to calculate out a price weighted by trading volumes.
+- Oracle-contract is used to store the price on blockchain, and also used to mantain the permitted node list for the dedicated oracle network.
 
 ## Architecture Overview
 ![image](https://user-images.githubusercontent.com/167837/177757017-bfc35f14-6d32-4f1d-8db9-5d1febab1baf.png)
 
-## Price Concatenation Calculation Expression
-- oracle node has configuration of calculating the price with trading pairs using the same quote, like USDC, USD, and etc.
-- simple concatenation expression is supported, with two operators: multiplication and division
+## Concatenation Calculation Expression of trading-pairs
+- in order to support caculate the price by using trading-paris with different quote, concatenation expression is used
+- currently, we support two operators: multiplication and division
 - for example
-  - if an exchange only provides the price ofr two pairs:`WBTC/ETH`, `ETH/USDC`, but we want use USDC as quote
+  - an exchange only provides the price off two pairs:`WBTC/ETH`, `ETH/USDC`, but we want use USDC as quote
   - a concatenation expression could be used as, `WBTC/ETH mul ETH/USDC`
-  - another example, if `WBTC/USDT` and `USDT/USDC` are provided, and we want the quote to be USDC
-  - then, use an expression as `WBTC/USDT div USDT/USDC`
+  - another example, if `WBTC/USDT` and `USDT/USDC` are provided, and we want the quote to be USDC, in this case, use the expression as `WBTC/USDT div USDT/USDC`
 
 ## Price-feeding  scheduling
 The basic scheduling is in a round-robbin way, each node can do feeding servral times one by one.
-In each round,one node is selected as leader, who is responsible for collecting price observed by other nodes, and make a summary to commit data into smart contract.
-The leader do the following tasks:
+In each round, one node is selected as leader, who is responsible for collecting price observed by other nodes, and make a summary to commit data into smart contract.
+The leader node does the following tasks:
 - verify the signatures in the message sent from other nodes
-- check the diffrence between price observed by other nodes and local
+- check the diffrence between price observed by other nodes and local, and reject the data with large difference
 - remove the price data recognized to be outliers
   - outliers detection details: https://github.com/tokenInsight/ti-oracle/blob/main/node/src/fetcher/aggregator.rs#L88
 - caculate the price weighted by the trading volumes
 
-Suppose we maintain a counter for how many times have feeded, as a variable `N`. 
+Suppose we maintain a counter for how many times have feeded from the begining of contract deployed, as a variable `N`. 
 - a variable `T`, which specify how many times one node can feed in each round.
 - a variable `M`, which specify how many nodes in the network are permiteed to do price feeding works.
-- Then, the correct leader should be `nodes[(N / T) % M]`
+- Then, the accepted leader should be the one `nodes[(N / T) % M]`
 
-For example, assuming that our network feeds the price once per minute, there are a total of 3 price feeding nodes: a, b, c, each node can be fed 5 times in a row, then the normal sequence is:
+For example, assuming the price data feeded once per minute, and there are a total of 3 price feeding nodes: a, b, c, each node can be fed 5 times in a row, then the ordinary sequence should be:
 ```
 +--------+--------+--------+
 | #Count | #Round | Leader |
@@ -68,10 +67,10 @@ For example, assuming that our network feeds the price once per minute, there ar
 ```
 
 ## What-if one node is crashed or disconnected?
-- Each round should have a timeout of do feeding, like, 300 seconds
-- If the time passed between last feeding and the current block.timestamp, then any node in the permitteed list can do feeding.
+- Each round should have a timeout of do feeding, like, 300 seconds, to prevent the system outage
+- If the time passed between last feeding and the current block.timestamp, then any node in the permitteed list is allowed to feed data
 - The details can be checked in the source code of smart contract: https://github.com/tokenInsight/ti-oracle/blob/main/contracts/src/TIOracle.sol#L69
-- Simply speaking, we use the smart contract as the role of Zookeeper in traditional distributed system
+- Simply speaking, we use the smart contract as like the role of Zookeeper in traditional distributed system
 
 
 # Developement Guide

@@ -28,6 +28,13 @@ The leader do the following tasks:
   - outliers detection details: https://github.com/tokenInsight/ti-oracle/blob/main/node/src/fetcher/aggregator.rs#L88
 - caculate the price weighted by the trading volumes
 
+## Price Concatenation Calculation Expression
+- oracle node can configure trading pairs for calculating the price using the same quote, like USDC, USD, and etc.
+- configuration file can parse simple concatenation expression, using multiplication and division
+- for example
+  - if an exchange only provides the price ofr two pairs: WBTC/ETH, ETH/USDC, but we want use USDC as quote
+  - a concatenation expression could be used as, `WBTC/ETH mul ETH/USD`
+
 Suppose we maintain a counter for how many times have feeded, as a variable `N`. 
 - a variable `T`, which specify how many times one node can feed in each round.
 - a variable `M`, which specify how many nodes in the network are permiteed to do price feeding works.
@@ -189,21 +196,22 @@ Test result: ok. 5 passed; 0 failed; finished in 6.83ms
     fee_per_gas: 65
 
     #trading pairs used from CEX & DEX to aggragate price
+    #trading pairs used of CEX & DEX to aggrate price
     mappings:
       binance:
         - BTCUSDC
-        - BTCUSDT
+        - BTCUSDT div USDCUSDT
       coinbase:
         - BTC-USD
         - BTC-USDC
       uniswapv3:
-        - 0x99ac8ca7087fa4a2a1fb6357269965a2014abc35
-        - 0x9db9e0e53058c89e5b94e29621a205198648425b
+        - 0x99ac8ca7087fa4a2a1fb6357269965a2014abc35 #WBTC-USDC
+        - 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed div 0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8 #WBTC-ETH div USDC-ETH
       ftx:
         - BTC/USD
-        - BTC/USDT
+        - BTC/USDT mul USDT/USD
       kucoin:
-        - BTC-USDT
+        - BTC-USDT mul USDT-USDC
         - BTC-USDC
 
     #specify some bootstrap nodes, one for each line

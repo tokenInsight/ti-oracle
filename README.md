@@ -32,8 +32,10 @@ The leader do the following tasks:
 - oracle node can configure trading pairs for calculating the price using the same quote, like USDC, USD, and etc.
 - configuration file can parse simple concatenation expression, using multiplication and division
 - for example
-  - if an exchange only provides the price ofr two pairs: WBTC/ETH, ETH/USDC, but we want use USDC as quote
-  - a concatenation expression could be used as, `WBTC/ETH mul ETH/USD`
+  - if an exchange only provides the price ofr two pairs:`WBTC/ETH`, `ETH/USDC`, but we want use USDC as quote
+  - a concatenation expression could be used as, `WBTC/ETH mul ETH/USDC`
+  - another example, if `WBTC/USDT` and `USDT/USDC` are provided, and we want the quote to be USDC
+  - then, use an expression as `WBTC/USDT div USDT/USDC`
 
 Suppose we maintain a counter for how many times have feeded, as a variable `N`. 
 - a variable `T`, which specify how many times one node can feed in each round.
@@ -59,7 +61,8 @@ For example, assuming that our network feeds the price once per minute, there ar
 |     11 |      2 | c      |
 |     12 |      2 | c      |
 |     13 |      2 | c      |
-|     14 |      2 | c      |
+|     14 |      2 | c      |  
+|     15 |      3 | a      |
 +--------+--------+--------+
 
 ```

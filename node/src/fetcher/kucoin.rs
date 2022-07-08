@@ -1,4 +1,4 @@
-use super::convert_bigint_price;
+use super::expression;
 use super::Exchange;
 use super::PairInfo;
 use async_trait::async_trait;
@@ -46,7 +46,7 @@ impl Exchange for Kucoin {
         symbols: Vec<String>,
     ) -> Result<Vec<PairInfo>, Box<dyn Error + Send + Sync>> {
         let mut result = Vec::<PairInfo>::new();
-        for symbol in symbols {
+        for symbol in expression::expand_symbols(&symbols) {
             let request_url = format!(
                 "https://api.kucoin.com/api/v1/market/stats?symbol={symbol}",
                 symbol = symbol
@@ -63,11 +63,12 @@ impl Exchange for Kucoin {
             let pair = rsps.data;
             result.push(PairInfo {
                 symbol: symbol.clone(),
-                price: convert_bigint_price(&pair.buy)?,
+                price: pair.buy.parse::<f64>()?,
                 volume: pair.vol.parse::<f64>()?,
                 timestamp: pair.time as u64,
             });
         }
+        let result = expression::reduce_symbols(&symbols, &result);
         return Ok(result);
     }
 }

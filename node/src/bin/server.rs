@@ -28,6 +28,7 @@ use tokio::time::timeout;
 
 const CONTRACT_TIMEOUT: u64 = 5000;
 const COLLECT_RESPONSE_TIMEOUT: u64 = 5000;
+const COMMIT_TX_TIMEOUT: u64 = 30000;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -141,15 +142,19 @@ async fn core_loop(
             Ok(is_my_turn) => {
                 info!("check if it is my turn to feed? {}", is_my_turn);
                 if is_my_turn {
-                    collect_signatures(
+                    let col_sig_future = collect_signatures(
                         oracle_stub,
                         cfg,
                         sender,
                         weighted_price,
                         Arc::clone(v_bucket),
                         private_key.clone(),
-                    )
-                    .await;
+                    );
+                    timeout(Duration::from_millis(COMMIT_TX_TIMEOUT), col_sig_future)
+                        .await
+                        .unwrap_or_else(|e| {
+                            warn!("commit tx timeout, {}", e);
+                        });
                 }
                 let refresh_req = RefreshPrice {
                     price: weighted_price.to_string(),

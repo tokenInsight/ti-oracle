@@ -29,18 +29,18 @@ fee_per_gas: 65
 mappings:
   binance:
     - BTCUSDC
-    - BTCUSDT
+    - BTCUSDT div USDCUSDT
   coinbase:
     - BTC-USD
     - BTC-USDC
   uniswapv3:
-    - 0x99ac8ca7087fa4a2a1fb6357269965a2014abc35
-    - 0x9db9e0e53058c89e5b94e29621a205198648425b
+    - 0x99ac8ca7087fa4a2a1fb6357269965a2014abc35 #WBTC-USDC
+    - 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed div 0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8 #WBTC-ETH div USDC-ETH
   ftx:
     - BTC/USD
-    - BTC/USDT
+    - BTC/USDT mul USDT/USD
   kucoin:
-    - BTC-USDT
+    - BTC-USDT mul USDT-USDC
     - BTC-USDC
 
 #specify some bootstrap nodes, one for each line

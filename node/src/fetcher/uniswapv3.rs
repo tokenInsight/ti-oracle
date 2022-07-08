@@ -1,6 +1,6 @@
 use crate::processor::utils;
 
-use super::convert_bigint_price;
+use super::expression;
 use super::Exchange;
 use super::PairInfo;
 use async_trait::async_trait;
@@ -63,7 +63,7 @@ impl Exchange for UniswapV3 {
         symbols: Vec<String>,
     ) -> Result<Vec<PairInfo>, Box<dyn Error + Send + Sync>> {
         let mut result = Vec::<PairInfo>::new();
-        for symbol in symbols {
+        for symbol in expression::expand_symbols(&symbols) {
             let request_url = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3";
             //println!("{}", request_url);
             let timeout = Duration::new(5, 0);
@@ -93,11 +93,12 @@ impl Exchange for UniswapV3 {
             let adjust_weight = 0.0063; //TODO: later, we should fetch 24hours volume
             result.push(PairInfo {
                 symbol: symbol.clone(),
-                price: convert_bigint_price(&pair.data.pool.token1price)?,
+                price: pair.data.pool.token1price.parse::<f64>()?,
                 volume: pair.data.pool.volume_token0.parse::<f64>()? * adjust_weight,
                 timestamp: utils::timestamp() as u64, //TODO timestamp
             });
         }
+        let result = expression::reduce_symbols(&symbols, &result);
         return Ok(result);
     }
 }
@@ -110,12 +111,11 @@ mod tests {
         let uni = UniswapV3::default();
         let result = uni
             .get_pairs(vec![
-                "0x99ac8ca7087fa4a2a1fb6357269965a2014abc35".into(),
-                "0x9db9e0e53058c89e5b94e29621a205198648425b".into(),
+                "0xcbcdf9626bc03e24f779434178a73a0b4bad62ed div 0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8".into(),
             ])
             .await;
         let result = result.unwrap();
         println!("{:?}", result);
-        assert_eq!(result.len(), 2);
+        assert_eq!(result.len(), 1);
     }
 }

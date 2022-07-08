@@ -8,8 +8,8 @@ use serde_derive::Serialize;
 use std::error::Error;
 use std::time::Duration;
 
+use super::expression;
 use super::Exchange;
-use super::PRECESIONS;
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PairList {
@@ -64,17 +64,19 @@ impl Exchange for Ftx {
         let response = client.get(&request_url).send().await?;
         let pair_list: PairList = response.json().await?;
         let mut result = Vec::<PairInfo>::new();
+        let expand_symbols = expression::expand_symbols(&symbols);
         for pair in &pair_list.result {
-            if symbols.contains(&pair.name) {
+            if symbols.contains(&pair.name) || expand_symbols.contains(&pair.name) {
                 let price = pair.price.expect("price invalid");
                 result.push(PairInfo {
                     symbol: pair.name.clone(),
-                    price: (price * PRECESIONS) as u128,
+                    price: price,
                     volume: (pair.quote_volume24h / price),
                     timestamp: utils::timestamp() as u64,
                 });
             }
         }
+        let result = expression::reduce_symbols(&symbols, &result);
         return Ok(result);
     }
 }

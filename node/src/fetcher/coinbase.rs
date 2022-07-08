@@ -1,4 +1,4 @@
-use super::convert_bigint_price;
+use super::expression;
 use super::Exchange;
 use super::PairInfo;
 use async_trait::async_trait;
@@ -31,8 +31,8 @@ impl Exchange for Coinbase {
         &self,
         symbols: Vec<String>,
     ) -> Result<Vec<PairInfo>, Box<dyn Error + Send + Sync>> {
-        let mut result = Vec::<PairInfo>::new();
-        for symbol in symbols {
+        let mut crawl_result = Vec::<PairInfo>::new();
+        for symbol in expression::expand_symbols(&symbols) {
             let request_url = format!(
                 "https://api.pro.coinbase.com/products/{symbol}/ticker",
                 symbol = symbol
@@ -48,13 +48,14 @@ impl Exchange for Coinbase {
             let pair: Pair = response.json().await?;
             //println!("{}", pair.time.clone());
             let timestamp = DateTime::parse_from_str(&pair.time, "%+")?.timestamp();
-            result.push(PairInfo {
+            crawl_result.push(PairInfo {
                 symbol: symbol.clone(),
-                price: convert_bigint_price(&pair.price)?,
+                price: pair.price.parse::<f64>()?,
                 volume: pair.volume.parse::<f64>()?,
                 timestamp: timestamp as u64,
             });
         }
+        let result = expression::reduce_symbols(&symbols, &crawl_result);
         return Ok(result);
     }
 }

@@ -1,6 +1,6 @@
 use super::ftx::Ftx;
 use super::kucoin::Kucoin;
-use super::{binance, coinbase, uniswapv3, Exchange, PairInfo};
+use super::{binance, coinbase, uniswapv3, Exchange, PairInfo, PRECESIONS_REPRESENT};
 use binance::Binance;
 use coinbase::Coinbase;
 use futures::future;
@@ -87,18 +87,18 @@ impl Aggregator {
 
 fn remove_outliers(mut all_pairs: Vec<&PairInfo>) -> Vec<&PairInfo> {
     let mut result = Vec::<&PairInfo>::new();
-    all_pairs.sort_by_key(|d| d.price);
+    all_pairs.sort_by(|a,b| a.price.partial_cmp(&b.price).unwrap());
     let n = all_pairs.len();
     let p25 = (n as f64 * 0.25) as usize;
     let p75 = (n as f64 * 0.75) as usize;
     let p25_price = all_pairs[p25].price;
     let p75_price = all_pairs[p75].price;
     let iqr = p75_price - p25_price;
-    let mut lower_bound = 0;
-    if p25_price > (iqr * 1.5 as u128) {
-        lower_bound = p25_price - (iqr * 1.5 as u128);
+    let mut lower_bound = 0.0;
+    if p25_price > (iqr * 1.5) {
+        lower_bound = p25_price - (iqr * 1.5);
     }
-    let upper_bound = p75_price + (iqr * 1.5 as u128);
+    let upper_bound = p75_price + (iqr * 1.5);
     for pair_price in all_pairs {
         if pair_price.price < lower_bound || pair_price.price > upper_bound {
             warn!("outlier skipped: {:?}", pair_price);
@@ -126,19 +126,18 @@ fn calc_weighted_price(
         avg_price += pair.price as f64 * pair.volume / total_volume;
     }
     debug!("avg : {}", avg_price);
-    Ok(avg_price as u128)
+    Ok((avg_price * PRECESIONS_REPRESENT) as u128)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::fetcher::aggregator;
     use crate::flags;
-    use log::info;
     #[tokio::test]
     async fn test_agg() {
         let cfg = flags::Config::new("./config/node.yaml").unwrap();
         let agg = aggregator::new(cfg.mappings);
         let weighted_price = agg.get_price().await.unwrap();
-        info!("weighted price:{}", weighted_price);
+        println!("weighted price:{}", weighted_price);
     }
 }

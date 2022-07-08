@@ -1,4 +1,4 @@
-use super::convert_bigint_price;
+use super::expression;
 use super::Exchange;
 use crate::fetcher::PairInfo;
 use async_trait::async_trait;
@@ -50,17 +50,19 @@ impl Exchange for Binance {
         let client = ClientBuilder::new().timeout(timeout).gzip(true).build()?;
         let response = client.get(&request_url).send().await?;
         let pair_list: Vec<Pair> = response.json().await?;
-        let mut result = Vec::<PairInfo>::new();
+        let mut crawl_result = Vec::<PairInfo>::new();
+        let expand_pairs = expression::expand_symbols(&symbols);
         for pair in &pair_list {
-            if symbols.contains(&pair.symbol) {
-                result.push(PairInfo {
+            if symbols.contains(&pair.symbol) || expand_pairs.contains(&pair.symbol) {
+                crawl_result.push(PairInfo {
                     symbol: pair.symbol.clone(),
-                    price: convert_bigint_price(&pair.last_price)?,
+                    price: pair.last_price.parse::<f64>()?,
                     volume: pair.volume.parse::<f64>()?,
                     timestamp: pair.close_time as u64,
                 });
             }
         }
+        let result = expression::reduce_symbols(&symbols, &crawl_result);
         return Ok(result);
     }
 }

@@ -4,13 +4,14 @@
 
 # Build your own oracle network
 
-## Why we need yet another oracle?
+## Why people need yet another oracle?
 For DeFi protocols, the price of crypto assets is very important, which is a signal that determines subsequent operations, such as the liquidation of collateral assets.
 
 Nowadays, popular oracles in the industry, such as Chainlink, have not yet solved the problem of the accuracy of price data. The fundamental reason is that their feeding nodes do not use fresh data. These data are provided by centralized vendor such as coingecko. Chainlink's DON only solves the problem of preventing feeding nodes doing evil.
 
 ## Solution to build your own oracle
-We provider two components: oracle-node and oracle-contract.
+For criticle DeFi application, relying on third-party price is dangerous, you do need to build your own network with your partners.
+We provider a solution to build up your own oracle, which is comprised of two components: oracle-node and oracle-contract.
 - Oracle-node is used to build up a p2p network, in which all the nodes send crypto price to blockchain in a round-robin way. They crawl trading pair's price from specified exchange and DEX, and then aggragate the data to calculate a price weighted by trading volumes.
 - Oracle-contract is used to store the price on blockchain, and used to mantain the permitted node list for oracle network
 

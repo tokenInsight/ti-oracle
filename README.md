@@ -24,7 +24,7 @@ We provider a solution to build up dedicated oracle networks, which are comprise
 - for example
   - an exchange only provides the price off two pairs:`WBTC/ETH`, `ETH/USDC`, but sometimes pepole want use USDC as standard quote
   - In this case, a concatenation expression could be used as `WBTC/ETH mul ETH/USDC`
-  - On the other side, if only `WBTC/USDT` and `USDT/USDC` are provided, and we want the quote to be USDC, in this case, use the expression as `WBTC/USDT div USDT/USDC`
+  - On the other side, if only `WBTC/USDT` and `USDC/USDT` are provided, and we want the quote to be USDC, in this case, use the expression as `WBTC/USDT div USDC/USDT`
 
 ## Price-feeding  scheduling
 The basic scheduling is in a round-robbin way, each node can do feeding servral times one by one.

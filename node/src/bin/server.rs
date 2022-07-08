@@ -26,6 +26,9 @@ use ti_node::processor::utils;
 use tokio::time;
 use tokio::time::timeout;
 
+const CONTRACT_TIMEOUT: u64 = 5000;
+const COLLECT_RESPONSE_TIMEOUT: u64 = 5000;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let opts = app_from_crate!()
@@ -100,7 +103,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 weighted_price = _weighted_price;
             }
             Err(err) => {
-                tokio::time::sleep(Duration::from_millis(5000)).await;
+                tokio::time::sleep(Duration::from_millis(CONTRACT_TIMEOUT)).await;
                 warn!("get price from exchange fail; {}", err);
                 continue;
             }
@@ -128,7 +131,11 @@ async fn core_loop(
     private_key: String,
     v_bucket: &gossip::ValidationBucket,
 ) {
-    let check_turn = timeout(Duration::from_millis(5000), oracle_stub.is_my_turn().call()).await;
+    let check_turn = timeout(
+        Duration::from_millis(CONTRACT_TIMEOUT),
+        oracle_stub.is_my_turn().call(),
+    )
+    .await;
     match check_turn {
         Ok(check_result) => match check_result {
             Ok(is_my_turn) => {
@@ -172,12 +179,15 @@ async fn collect_signatures(
     bucket: gossip::ValidationBucket,
     private_key: String,
 ) {
-    let feed_count: U256 = oracle_stub.feed_count().call().await.unwrap();
+    let feed_count = match get_feed_count(oracle_stub).await {
+        Some(value) => value,
+        None => return,
+    };
     let valid_request = gossip::ValidateRequest {
         coin: cfg.coin_name.clone(),
         feed_count: feed_count.as_u64(),
         timestamp: utils::timestamp(),
-        price: weighted_price.to_string(), //TODO fetch from api of market
+        price: weighted_price.to_string(),
     };
     {
         let mut v_bucket = bucket.lock().unwrap();
@@ -196,7 +206,7 @@ async fn collect_signatures(
             .await
             .unwrap();
     }
-    tokio::time::sleep(Duration::from_millis(5000)).await; //wait for result at most 5 seconds
+    tokio::time::sleep(Duration::from_millis(COLLECT_RESPONSE_TIMEOUT)).await; //wait for result at most 5 seconds
     let v_bucket = bucket.lock().unwrap();
     info!("bucket size:{}", v_bucket.len());
     let collected_data = v_bucket.get(&feed_count.as_u64());
@@ -289,6 +299,38 @@ async fn collect_signatures(
             warn!("tx error: {}", err);
         }
     }
+}
+
+async fn get_feed_count(
+    oracle_stub: &eth::TIOracle<
+        ethers::prelude::SignerMiddleware<
+            ethers::prelude::Provider<ethers::prelude::Http>,
+            ethers::prelude::Wallet<ethers::prelude::k256::ecdsa::SigningKey>,
+        >,
+    >,
+) -> Option<U256> {
+    let feed_count: U256;
+    let feed_count_result = timeout(
+        Duration::from_millis(CONTRACT_TIMEOUT),
+        oracle_stub.feed_count().call(),
+    )
+    .await;
+    match feed_count_result {
+        Ok(feed_count_obj) => match feed_count_obj {
+            Ok(n) => {
+                feed_count = n;
+            }
+            Err(err) => {
+                warn!("contract error: {}", err);
+                return None;
+            }
+        },
+        Err(timeout_err) => {
+            warn!("get feed count err, {}", timeout_err);
+            return None;
+        }
+    }
+    Some(feed_count)
 }
 
 fn from_gwei(gwei: f64) -> U256 {

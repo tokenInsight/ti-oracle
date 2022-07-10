@@ -4,6 +4,7 @@ pub mod coinbase;
 pub mod expression;
 pub mod ftx;
 pub mod kucoin;
+pub mod uniswapv2;
 pub mod uniswapv3;
 
 use async_trait::async_trait;

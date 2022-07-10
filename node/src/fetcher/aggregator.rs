@@ -1,6 +1,6 @@
 use super::ftx::Ftx;
 use super::kucoin::Kucoin;
-use super::{binance, coinbase, uniswapv3, Exchange, PairInfo, PRECESIONS_REPRESENT};
+use super::{binance, coinbase, uniswapv2, uniswapv3, Exchange, PairInfo, PRECESIONS_REPRESENT};
 use binance::Binance;
 use coinbase::Coinbase;
 use futures::future;
@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::vec::Vec;
 use strum_macros::Display;
+use uniswapv2::UniswapV2;
 use uniswapv3::UniswapV3;
 
 pub struct Aggregator {
@@ -27,6 +28,8 @@ pub fn new(mappings: BTreeMap<String, Vec<String>>) -> Aggregator {
         .insert("coinbase".into(), Box::new(Coinbase::default()));
     agg.data_sources
         .insert("uniswapv3".into(), Box::new(UniswapV3::default()));
+    agg.data_sources
+        .insert("uniswapv2".into(), Box::new(UniswapV2::default()));
     agg.data_sources
         .insert("ftx".into(), Box::new(Ftx::default()));
     agg.data_sources

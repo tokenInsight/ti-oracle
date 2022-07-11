@@ -4,6 +4,7 @@ pub mod coinbase;
 pub mod expression;
 pub mod ftx;
 pub mod kucoin;
+pub mod okex;
 pub mod uniswapv2;
 pub mod uniswapv3;
 

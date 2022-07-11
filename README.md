@@ -1,4 +1,4 @@
-# TokenInsight Oracle 
+# TokenInsight Oracle
 
 ![ci workflow](https://github.com/tokeninsight/ti-oracle/actions/workflows/basic.yml/badge.svg)
 
@@ -11,7 +11,7 @@ However, popular oracles in the industry, such as Chainlink, have not yet solved
 
 ## Solution to build dedicated oracle
 For critical DeFi application, relying on third-party price is dangerous, project owner must build their own feeding network with their partners.
-We provider a solution to build up dedicated oracle networks, which are comprised of two components: oracle-node and oracle-contract.
+We provide a solution to build up dedicated oracle networks, which are comprised of two components: oracle-node and oracle-contract.
 - Oracle-node is used to build up a p2p network, in which all the nodes commit price data into blockchain in a round-robin way. They crawl trading pair's price from self specified exchanges and trading-pairs, and then aggragate the data to calculate out a price weighted by trading volumes.
 - Oracle-contract is used to store the price on blockchain, and also used to mantain the permitted node list for the dedicated oracle network.
 
@@ -36,7 +36,7 @@ The leader node does the following tasks:
   - outliers detection details: https://github.com/tokenInsight/ti-oracle/blob/main/node/src/fetcher/aggregator.rs#L88
 - caculate the price weighted by the trading volumes
 
-Suppose we maintain a counter for how many times have feeded from the begining of contract deployed, as a variable `N`. 
+Suppose we maintain a counter for how many times have feeded from the begining of contract deployed, as a variable `N`.
 - a variable `T`, which specify how many times one node can feed in each round.
 - a variable `M`, which specify how many nodes in the network are permiteed to do price feeding works.
 - Then, the accepted leader should be the one `nodes[(N / T) % M]`
@@ -60,7 +60,7 @@ For example, assuming the price data feeded once per minute, and there are a tot
 |     11 |      2 | c      |
 |     12 |      2 | c      |
 |     13 |      2 | c      |
-|     14 |      2 | c      |  
+|     14 |      2 | c      |
 |     15 |      3 | a      |
 +--------+--------+--------+
 
@@ -85,7 +85,7 @@ node/src
 │   └── server.rs       # the entry point, core logic of node
 ├── chains
 │   ├── eth.rs          # functions about crypto sigh, hash, and smart contract invoke
-│   └── mod.rs      
+│   └── mod.rs
 ├── fetcher
 │   ├── aggregator.rs   # functions about weighted price calculating, and outliers detection
 │   ├── balancer.rs     # to be done
@@ -150,12 +150,12 @@ Test result: ok. 5 passed; 0 failed; finished in 6.83ms
 - for example, we deploy a contract for Bitcoin price feeding
   - `forge create TIOracle --rpc-url=https://polygon-rpc.com --interactive --constructor-args bitcoin 5 300 --gas-price 65000000000`
   - you can deploy the `contracts/src/TIOracle.sol` in any ways you like, and `forge` is just one choice
-  
+
 - meaning of the above constructor arguments
   - pricing feeding is for `bitcoin`
   - feed `5` times each round
   - timeout for one round is 300 seconds
-  
+
 - adding address of the permitted transmission nodes
   - call this method of the contract `addNode(address newNode)`
   - you can do this by your wallet connected to etherscan

@@ -45,7 +45,9 @@ mappings:
   kucoin:
     - BTC-USDT mul USDT-USDC
     - BTC-USDC
-
+  okex:
+    - BTC-USDC
+    - BTC-USDT div USDC-USDT
 #specify some bootstrap nodes, one for each line
 peers:
   - ""

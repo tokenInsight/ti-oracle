@@ -1,5 +1,6 @@
 use super::ftx::Ftx;
 use super::kucoin::Kucoin;
+use super::okex::OkEx;
 use super::{binance, coinbase, uniswapv2, uniswapv3, Exchange, PairInfo, PRECESIONS_REPRESENT};
 use binance::Binance;
 use coinbase::Coinbase;
@@ -34,6 +35,8 @@ pub fn new(mappings: BTreeMap<String, Vec<String>>) -> Aggregator {
         .insert("ftx".into(), Box::new(Ftx::default()));
     agg.data_sources
         .insert("kucoin".into(), Box::new(Kucoin::default()));
+    agg.data_sources
+        .insert("okex".into(), Box::new(OkEx::default()));
     agg
 }
 

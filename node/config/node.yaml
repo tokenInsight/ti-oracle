@@ -48,6 +48,8 @@ mappings:
   okex:
     - BTC-USDC
     - BTC-USDT div USDC-USDT
+  sushiswap:
+    - 0xceff51756c56ceffca006cd410b03ffc46dd3a58 div 0x397ff1542f962076d0bfe58ea045ffa2d347aca0 #wBTC-ETH div USDC-ETH
 #specify some bootstrap nodes, one for each line
 peers:
   - ""

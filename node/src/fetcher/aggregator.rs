@@ -1,6 +1,7 @@
 use super::ftx::Ftx;
 use super::kucoin::Kucoin;
 use super::okex::OkEx;
+use super::sushiswap::Sushiswap;
 use super::{binance, coinbase, uniswapv2, uniswapv3, Exchange, PairInfo, PRECESIONS_REPRESENT};
 use binance::Binance;
 use coinbase::Coinbase;
@@ -37,6 +38,8 @@ pub fn new(mappings: BTreeMap<String, Vec<String>>) -> Aggregator {
         .insert("kucoin".into(), Box::new(Kucoin::default()));
     agg.data_sources
         .insert("okex".into(), Box::new(OkEx::default()));
+    agg.data_sources
+        .insert("sushiswap".into(), Box::new(Sushiswap::default()));
     agg
 }
 

@@ -5,6 +5,7 @@ pub mod expression;
 pub mod ftx;
 pub mod kucoin;
 pub mod okex;
+pub mod sushiswap;
 pub mod uniswapv2;
 pub mod uniswapv3;
 

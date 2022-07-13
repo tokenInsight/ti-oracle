@@ -108,6 +108,7 @@ fn remove_outliers(mut all_pairs: Vec<&PairInfo>) -> Vec<&PairInfo> {
         lower_bound = p25_price - (iqr * 1.5);
     }
     let upper_bound = p75_price + (iqr * 1.5);
+    info!("range acceptted: [{},{}]", lower_bound, upper_bound);
     for pair_price in all_pairs {
         if pair_price.price < lower_bound || pair_price.price > upper_bound {
             warn!("outlier skipped: {:?}", pair_price);

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
-//import "forge-std/Test.sol";
+// import "forge-std/Test.sol";
 // TIOracle is an oracle that provides reliable prices in multiple currencies
 contract TIOracle {
+    uint constant MAX_NODES = 128;
     // PriceInfo is a single piece of price information,
     // which includes TI's quotation, and the timestamp of price feeding
     struct PriceInfo {
@@ -76,16 +77,30 @@ contract TIOracle {
         return decideValidNode(lastRound) == msg.sender;
     }
 
+    //FIXME, if has more gas efffetive implmentaion
+    function hasDuplication(PeerPriceFeed[] memory peersPrice) view internal returns (bool) {
+        bool [MAX_NODES] memory seen;
+        for (uint i=0; i<peersPrice.length; i++) {
+            uint offset = nodesOffset[peersPrice[i].peerAddress];
+            require(offset > 0, "peer not in valid list");
+            if (seen[offset - 1]) {
+                return true;
+            }
+            seen[offset - 1]  = true;
+        }
+        return false;
+    }
+
     // check whether the feeding has enough signatures from > 2/3 nodes
     function checkSignatures(string memory coinName, PeerPriceFeed[] memory peersPrice) view internal returns (bool) {
         uint256 prevPeerPrice = 0;
         if (nodes.length * 2 / 3 >= peersPrice.length) {
             return false;
         }
+        require(!hasDuplication(peersPrice), "signatures has duplicated address");
         for (uint i=0; i<peersPrice.length; i++) {
             PeerPriceFeed memory peer = peersPrice[i];
             require(peer.timestamp > lastPrice.timestamp, "invalid timestamp");
-            require(nodesOffset[peer.peerAddress] > 0, "peer not in valid list");
             require(peer.price >= prevPeerPrice , "price list not soreted in increasing order");
             bytes32 digest = keccak256(abi.encodePacked(coinName, peer.price, peer.timestamp));
             address recovered = recoverSign(digest, peer.sig);
@@ -116,6 +131,7 @@ contract TIOracle {
     function addNode(address newNode) public {
         require(msg.sender == admin, "invalid caller to add new node");
         nodes.push(newNode);
+        require(nodes.length < MAX_NODES, "too many nodes added");
         nodesOffset[newNode] = nodes.length;
         emit NodeAdded(newNode);
     }

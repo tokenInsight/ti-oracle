@@ -139,8 +139,10 @@ impl P2PMessageProcessor {
                                         v_bucket.insert(valid_resps.feed_count, Vec::<ValidateResponse>::new());
                                     }
                                     let round_collection = v_bucket.get_mut(&valid_resps.feed_count).unwrap();
-                                    //TODO, dedup
-                                    round_collection.push(valid_resps);
+                                    let check_dup = round_collection.iter().find(|x| x.address == valid_resps.address);
+                                    if check_dup.is_none() {
+                                        round_collection.push(valid_resps);
+                                    }
                                     //info!("p2p bucket size:{}", v_bucket.len());
                                 },
                             }

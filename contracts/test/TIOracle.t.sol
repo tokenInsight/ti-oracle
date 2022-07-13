@@ -50,6 +50,30 @@ contract ContractTest is Test {
         }
     }
 
+    function duplicatedEthFeeds() internal view returns (TIOracle.PeerPriceFeed[] memory) {
+            TIOracle.PeerPriceFeed[] memory feeds = new TIOracle.PeerPriceFeed[](3);
+            TIOracle.PeerPriceFeed memory item;
+            item.peerAddress = nodeA;
+            item.price = 23456;
+            item.timestamp = 1656587035;
+            item.sig = hex'764b3b307faabd37ec72270b31b71af012a0f21528e5a581b7b9052a7edc023c69104ef5104ab0dec78f9ddd2a22429cf3e9a44255e3ffd78e70284bed75a8731b';
+            TIOracle.PeerPriceFeed memory item2;
+            item2.peerAddress = nodeB;
+            item2.price = 23457;
+            item2.timestamp = 1656587035;
+            item2.sig = hex'707b11750fabff7e2fb731e82fa69aa373118f2c41c711892e3284676a3b1af427d7a9423b8fbcb28963cee5d6a4e3c9ef87cb0b6fbe9a462dc096471228a0f41b';
+            //item 3 is duplicated with the first item
+            TIOracle.PeerPriceFeed memory item3;
+            item3.peerAddress = nodeA;
+            item3.price = 23456;
+            item3.timestamp = 1656587035;
+            item3.sig = hex'764b3b307faabd37ec72270b31b71af012a0f21528e5a581b7b9052a7edc023c69104ef5104ab0dec78f9ddd2a22429cf3e9a44255e3ffd78e70284bed75a8731b';
+            feeds[0] = item;
+            feeds[1] = item2;
+            feeds[2] = item3;
+            return feeds;
+    }
+
     function fakeEthFeeds() internal view returns (TIOracle.PeerPriceFeed[] memory) {
             TIOracle.PeerPriceFeed[] memory feeds = new TIOracle.PeerPriceFeed[](3);
             TIOracle.PeerPriceFeed memory item;
@@ -94,6 +118,16 @@ contract ContractTest is Test {
             feeds[1] = item2;
             feeds[2] = item3;
             return feeds;
+    }
+
+    function testFeedwithDuplicated() public {
+        Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
+        testRoundOwner();
+        vm.startPrank(nodeA);
+        TIOracle.PeerPriceFeed[] memory dupFeeds = duplicatedEthFeeds();
+        vm.expectRevert("signatures has duplicated address");
+        tiOracle.feedPrice("eth", dupFeeds);
+        vm.stopPrank();
     }
 
     function testFeedPrice() public {

@@ -66,7 +66,7 @@ mod tests {
     async fn test_fetch() {
         let coinbase = Coinbase::default();
         let result = coinbase
-            .get_pairs(vec!["BTC-USDC".into(), "BTC-USD".into()])
+            .get_pairs(vec!["BTC-USD".into(), "BTC-USDT".into()])
             .await;
         let result = result.unwrap();
         println!("{:?}", result);

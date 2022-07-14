@@ -32,7 +32,7 @@ mappings:
     - BTCUSDT div USDCUSDT
   coinbase:
     - BTC-USD
-    - BTC-USDC
+    - BTC-USDT mul USDT-USD
   uniswapv3:
     - 0x99ac8ca7087fa4a2a1fb6357269965a2014abc35 #WBTC-USDC
     - 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed div 0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8 #WBTC-ETH div USDC-ETH

@@ -20,9 +20,11 @@ use ti_node::flags;
 use ti_node::processor::gossip;
 use ti_node::processor::gossip::LocalCommand;
 use ti_node::processor::gossip::RefreshPrice;
+use ti_node::processor::gossip::ValidateResponse;
 use ti_node::processor::swarm;
 use ti_node::processor::utils;
 use ti_node::processor::web;
+use ti_node::processor::web::SharedState;
 use tokio::time;
 use tokio::time::timeout;
 
@@ -85,7 +87,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     )
     .await?;
     let v_bucket = gossip::ValidationBucket::default();
-    let mut p2p_processor = gossip::new(swarm, topic, receiver, Arc::clone(&v_bucket));
+    let s_state = SharedState::default();
+    let mut p2p_processor = gossip::new(
+        swarm,
+        topic,
+        receiver,
+        Arc::clone(&v_bucket),
+        Arc::clone(&s_state),
+    );
     tokio::task::spawn({
         let mut cfg_copy = cfg.clone();
         cfg_copy.private_key = private_key.clone();
@@ -93,11 +102,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
             p2p_processor.process_p2p_message(cfg_copy).await;
         }
     });
-    let agg = aggregator::new(cfg.mappings.clone());
+    let agg = aggregator::new(cfg.mappings.clone(), Arc::clone(&s_state));
     let mut interval = time::interval(Duration::from_millis(cfg.feed_interval * 1000));
     let web_addr = cfg.web_address.clone();
+    let copy_s_state = Arc::clone(&s_state);
     tokio::task::spawn(async move {
-        web::start(web_addr).await;
+        web::start(web_addr, copy_s_state).await;
     });
     loop {
         let price_result = agg.get_price().await;
@@ -119,6 +129,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             weighted_price,
             private_key.clone(),
             &v_bucket,
+            &s_state,
         )
         .await;
         info!("wait a moment to start next feeding");
@@ -134,6 +145,7 @@ async fn core_loop(
     weighted_price: u128,
     private_key: String,
     v_bucket: &gossip::ValidationBucket,
+    s_state: &SharedState,
 ) {
     let check_turn = timeout(
         Duration::from_millis(eth::CONTRACT_TIMEOUT),
@@ -152,6 +164,7 @@ async fn core_loop(
                         weighted_price,
                         Arc::clone(v_bucket),
                         private_key.clone(),
+                        s_state,
                     );
                     timeout(Duration::from_millis(COMMIT_TX_TIMEOUT), col_sig_future)
                         .await
@@ -186,6 +199,7 @@ async fn collect_signatures(
     weighted_price: u128,
     bucket: gossip::ValidationBucket,
     private_key: String,
+    s_state: &SharedState,
 ) {
     let feed_count = match eth::get_feed_count(oracle_stub).await {
         Some(value) => value,
@@ -201,7 +215,7 @@ async fn collect_signatures(
         let mut v_bucket = bucket.lock().unwrap();
         let mut gc_keys = Vec::<u64>::new();
         for (k, _) in v_bucket.iter() {
-            if *k < feed_count.as_u64() {
+            if *k + 10 < feed_count.as_u64() {
                 gc_keys.push(*k);
             }
         }
@@ -215,54 +229,65 @@ async fn collect_signatures(
             .unwrap();
     }
     tokio::time::sleep(Duration::from_millis(COLLECT_RESPONSE_TIMEOUT)).await; //wait for result at most 5 seconds
-    let v_bucket = bucket.lock().unwrap();
-    info!("bucket size:{}", v_bucket.len());
-    let collected_data = v_bucket.get(&feed_count.as_u64());
-    let mut peers_price = Vec::<PeerPriceFeed>::new();
-    match collected_data {
-        Some(validated_response_list) => {
-            info!(
-                "price info signed by other nodes: {:?}",
-                validated_response_list
-            );
-            for price_signed in validated_response_list {
-                let verify_result = eth::verify_sig(
-                    price_signed.sig.clone(),
-                    price_signed.coin.clone(),
-                    price_signed.price.parse::<u128>().unwrap_or_else(|_| 0),
-                    price_signed.timestamp,
-                    price_signed.address.clone(),
-                );
-                if !verify_result {
-                    warn!("verify signature failed from {:}", price_signed.address);
-                    continue;
-                }
-                let price_feed = PeerPriceFeed {
-                    peer_address: Address::from_str(price_signed.address.as_str()).unwrap(),
-                    sig: Bytes::from_str(&price_signed.sig.as_str()).unwrap(),
-                    price: U256::from(price_signed.price.parse::<u128>().unwrap()),
-                    timestamp: U256::from(price_signed.timestamp),
-                };
-                let allowed = oracle_stub
-                    .query_node(price_feed.peer_address)
-                    .call()
-                    .await
-                    .unwrap_or_else(|err| {
-                        warn!("query node err: {:?}", err);
-                        false
-                    });
-                if !allowed {
-                    warn!(
-                        "price report from unexpected node:{:?}",
-                        price_feed.peer_address
-                    );
-                    continue;
-                }
-                peers_price.push(price_feed);
-            }
+    let validated_response_list: Vec<ValidateResponse>;
+    {
+        let v_bucket = bucket.lock().unwrap();
+        info!("bucket size:{}", v_bucket.len());
+        let result = v_bucket.get(&feed_count.as_u64());
+        if result.is_none() {
+            warn!("no response collected");
+            validated_response_list = Vec::new();
+        } else {
+            validated_response_list = v_bucket.get(&feed_count.as_u64()).unwrap().clone();
         }
-        None => {
-            warn!("no response collected")
+    }
+    let mut peers_price = Vec::<PeerPriceFeed>::new();
+    if validated_response_list.len() > 0 {
+        {
+            let mut s_state = s_state.lock().unwrap();
+            let copy_of_report = validated_response_list.clone();
+            s_state
+                .peers_report
+                .insert(feed_count.as_u64(), copy_of_report);
+        }
+        info!(
+            "price info signed by other nodes: {:?}",
+            validated_response_list
+        );
+        for price_signed in validated_response_list {
+            let verify_result = eth::verify_sig(
+                price_signed.sig.clone(),
+                price_signed.coin.clone(),
+                price_signed.price.parse::<u128>().unwrap_or_else(|_| 0),
+                price_signed.timestamp,
+                price_signed.address.clone(),
+            );
+            if !verify_result {
+                warn!("verify signature failed from {:}", price_signed.address);
+                continue;
+            }
+            let price_feed = PeerPriceFeed {
+                peer_address: Address::from_str(price_signed.address.as_str()).unwrap(),
+                sig: Bytes::from_str(&price_signed.sig.as_str()).unwrap(),
+                price: U256::from(price_signed.price.parse::<u128>().unwrap()),
+                timestamp: U256::from(price_signed.timestamp),
+            };
+            let allowed = oracle_stub
+                .query_node(price_feed.peer_address)
+                .call()
+                .await
+                .unwrap_or_else(|err| {
+                    warn!("query node err: {:?}", err);
+                    false
+                });
+            if !allowed {
+                warn!(
+                    "price report from unexpected node:{:?}",
+                    price_feed.peer_address
+                );
+                continue;
+            }
+            peers_price.push(price_feed);
         }
     }
     //prepare self sign

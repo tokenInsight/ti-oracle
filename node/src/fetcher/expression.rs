@@ -120,12 +120,14 @@ mod tests {
             price: 8.0,
             volume: 0.0,
             timestamp: 0,
+            exchange: "tiex".into(),
         });
         ref_pairs.push(PairInfo {
             symbol: "b".into(),
             price: 2.0,
             volume: 0.0,
             timestamp: 0,
+            exchange: "tiex".into(),
         });
         assert_eq!(x.is_expression(), true);
         let result = x.eval_price(&ref_pairs);

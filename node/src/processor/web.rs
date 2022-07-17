@@ -1,19 +1,40 @@
+use crate::fetcher::PairInfo;
+use crate::processor::gossip::ValidateResponse;
 use axum::{
     http::StatusCode,
     response::IntoResponse,
     routing::{get, get_service},
-    Router,
+    Extension, Json, Router,
 };
+use log::info;
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
 use std::{io, net::SocketAddr};
-use log::{info};
-use tower_http::{services::ServeDir};
+use tower::ServiceBuilder;
+use tower_http::services::ServeDir;
 
-pub async fn start(web_addr: String) {
+#[derive(Default)]
+pub struct SharedStateData {
+    pub peers_report: BTreeMap<u64, Vec<ValidateResponse>>,
+    pub exchange_pairs: Vec<PairInfo>,
+    pub peers: BTreeMap<String, u64>, //peer, timestamp
+}
+pub type SharedState = Arc<Mutex<SharedStateData>>;
+
+pub async fn start(web_addr: String, s_state: SharedState) {
     // build our application with a route
     let app = Router::new()
-        .route("/", get_service(ServeDir::new("./static")).handle_error(handle_error))
-        .route("/peers", get(peers));
-    let addr: SocketAddr = web_addr.parse().expect("unable to parse web server address");
+        .route(
+            "/",
+            get_service(ServeDir::new("./static")).handle_error(handle_error),
+        )
+        .route("/report", get(report))
+        .route("/pairs", get(pairs))
+        .route("/peers", get(peers))
+        .layer(ServiceBuilder::new().layer(Extension(s_state)).into_inner());
+    let addr: SocketAddr = web_addr
+        .parse()
+        .expect("unable to parse web server address");
     info!("web listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
@@ -21,9 +42,19 @@ pub async fn start(web_addr: String) {
         .unwrap();
 }
 
-// basic handler that responds with a static string
-async fn peers() -> &'static str {
-    "Hello, World!"
+async fn report(Extension(state): Extension<SharedState>) -> impl IntoResponse {
+    let report = state.lock().unwrap().peers_report.clone();
+    (StatusCode::ACCEPTED, Json(report))
+}
+
+async fn pairs(Extension(state): Extension<SharedState>) -> impl IntoResponse {
+    let exchange_pairs = state.lock().unwrap().exchange_pairs.clone();
+    (StatusCode::ACCEPTED, Json(exchange_pairs))
+}
+
+async fn peers(Extension(state): Extension<SharedState>) -> impl IntoResponse {
+    let peers = state.lock().unwrap().peers.clone();
+    (StatusCode::ACCEPTED, Json(peers))
 }
 
 async fn handle_error(_err: io::Error) -> impl IntoResponse {

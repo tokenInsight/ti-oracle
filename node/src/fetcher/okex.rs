@@ -41,6 +41,8 @@ pub struct Pair {
 #[derive(Default, Clone)]
 pub struct OkEx {}
 
+pub const NAME: &str = "okex";
+
 #[async_trait]
 impl Exchange for OkEx {
     async fn get_pairs(
@@ -61,6 +63,7 @@ impl Exchange for OkEx {
                     price: pair.last.parse::<f64>()?,
                     volume: pair.vol24h.parse::<f64>()?,
                     timestamp: pair.ts.parse::<u64>()?,
+                    exchange: NAME.into(),
                 });
             }
         }

@@ -56,6 +56,8 @@ struct QueryRequest {
 #[derive(Default, Clone)]
 pub struct UniswapV3 {}
 
+pub const NAME: &str = "uniswapv3";
+
 #[async_trait]
 impl Exchange for UniswapV3 {
     async fn get_pairs(
@@ -96,6 +98,7 @@ impl Exchange for UniswapV3 {
                 price: pair.data.pool.token1price.parse::<f64>()?,
                 volume: pair.data.pool.volume_token0.parse::<f64>()? * adjust_weight,
                 timestamp: utils::timestamp() as u64, //TODO timestamp
+                exchange: NAME.into(),
             });
         }
         let result = expression::reduce_symbols(&symbols, &result);

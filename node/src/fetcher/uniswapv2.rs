@@ -50,6 +50,8 @@ pub struct Token1 {
 #[derive(Default, Clone)]
 pub struct UniswapV2 {}
 
+pub const NAME: &str = "uniswapv2";
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct QueryRequest {
     pub query: String,
@@ -97,6 +99,7 @@ impl Exchange for UniswapV2 {
                     volume: response_json.data.pairs[0].volume_token0.parse::<f64>()?
                         * adjust_weight,
                     timestamp: utils::timestamp() as u64, //TODO timestamp
+                    exchange: NAME.into(),
                 });
             }
         }

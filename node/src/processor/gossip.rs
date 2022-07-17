@@ -1,5 +1,6 @@
 use crate::chains::eth;
 use crate::flags::Config;
+use crate::processor::utils;
 use async_std::io;
 use futures::channel::mpsc::Receiver;
 use futures::{prelude::*, select};
@@ -15,6 +16,8 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use super::web::SharedState;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ValidateRequest {
     pub coin: String,
@@ -23,7 +26,7 @@ pub struct ValidateRequest {
     pub timestamp: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ValidateResponse {
     pub coin: String,
     pub price: String,
@@ -58,6 +61,7 @@ pub struct P2PMessageProcessor {
     recv: Receiver<LocalCommand>,
     last_seen_price: Arc<Mutex<u128>>,
     bucket: ValidationBucket,
+    s_state: SharedState,
 }
 
 pub fn new(
@@ -65,6 +69,7 @@ pub fn new(
     topic: IdentTopic,
     recv: Receiver<LocalCommand>,
     bucket: ValidationBucket,
+    s_state: SharedState,
 ) -> P2PMessageProcessor {
     P2PMessageProcessor {
         swarm: swarm,
@@ -72,6 +77,7 @@ pub fn new(
         recv: recv,
         last_seen_price: Arc::<Mutex<u128>>::new(Mutex::new(0)),
         bucket: bucket,
+        s_state: s_state,
     }
 }
 
@@ -134,6 +140,8 @@ impl P2PMessageProcessor {
                                 },
                                 CommandMessage::VResp(valid_resps) => {
                                     info!("validate price response {:?}", valid_resps);
+                                    let ts = utils::timestamp();
+                                    self.s_state.lock().unwrap().peers.insert(valid_resps.address.clone(), ts);
                                     let mut v_bucket = self.bucket.lock().unwrap();
                                     if !v_bucket.contains_key(&valid_resps.feed_count) {
                                         v_bucket.insert(valid_resps.feed_count, Vec::<ValidateResponse>::new());

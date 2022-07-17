@@ -25,6 +25,8 @@ pub struct Pair {
 #[derive(Default, Clone)]
 pub struct Coinbase {}
 
+pub const NAME: &str = "coinbase";
+
 #[async_trait]
 impl Exchange for Coinbase {
     async fn get_pairs(
@@ -53,6 +55,7 @@ impl Exchange for Coinbase {
                 price: pair.price.parse::<f64>()?,
                 volume: pair.volume.parse::<f64>()?,
                 timestamp: timestamp as u64,
+                exchange: NAME.into(),
             });
         }
         let result = expression::reduce_symbols(&symbols, &crawl_result);

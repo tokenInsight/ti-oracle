@@ -39,6 +39,8 @@ pub struct Pair {
 #[derive(Default, Clone)]
 pub struct Binance {}
 
+pub const NAME: &str = "binance";
+
 #[async_trait]
 impl Exchange for Binance {
     async fn get_pairs(
@@ -59,6 +61,7 @@ impl Exchange for Binance {
                     price: pair.last_price.parse::<f64>()?,
                     volume: pair.volume.parse::<f64>()?,
                     timestamp: pair.close_time as u64,
+                    exchange: NAME.to_string(),
                 });
             }
         }

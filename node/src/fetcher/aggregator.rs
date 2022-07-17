@@ -1,7 +1,9 @@
-use super::ftx::Ftx;
-use super::kucoin::Kucoin;
-use super::okex::OkEx;
-use super::sushiswap::Sushiswap;
+use crate::processor::web::SharedState;
+
+use super::ftx::{self, Ftx};
+use super::kucoin::{self, Kucoin};
+use super::okex::{self, OkEx};
+use super::sushiswap::{self, Sushiswap};
 use super::{binance, coinbase, uniswapv2, uniswapv3, Exchange, PairInfo, PRECESIONS_REPRESENT};
 use binance::Binance;
 use coinbase::Coinbase;
@@ -17,29 +19,31 @@ use uniswapv3::UniswapV3;
 pub struct Aggregator {
     data_sources: BTreeMap<String, Box<dyn Exchange>>,
     mappings: BTreeMap<String, Vec<String>>,
+    s_state: SharedState,
 }
 
-pub fn new(mappings: BTreeMap<String, Vec<String>>) -> Aggregator {
+pub fn new(mappings: BTreeMap<String, Vec<String>>, _s_state: SharedState) -> Aggregator {
     let mut agg = Aggregator {
         data_sources: BTreeMap::new(),
         mappings: mappings,
+        s_state: _s_state,
     };
     agg.data_sources
-        .insert("binance".into(), Box::new(Binance::default()));
+        .insert(binance::NAME.into(), Box::new(Binance::default()));
     agg.data_sources
-        .insert("coinbase".into(), Box::new(Coinbase::default()));
+        .insert(coinbase::NAME.into(), Box::new(Coinbase::default()));
     agg.data_sources
-        .insert("uniswapv3".into(), Box::new(UniswapV3::default()));
+        .insert(uniswapv3::NAME.into(), Box::new(UniswapV3::default()));
     agg.data_sources
-        .insert("uniswapv2".into(), Box::new(UniswapV2::default()));
+        .insert(uniswapv2::NAME.into(), Box::new(UniswapV2::default()));
     agg.data_sources
-        .insert("ftx".into(), Box::new(Ftx::default()));
+        .insert(ftx::NAME.into(), Box::new(Ftx::default()));
     agg.data_sources
-        .insert("kucoin".into(), Box::new(Kucoin::default()));
+        .insert(kucoin::NAME.into(), Box::new(Kucoin::default()));
     agg.data_sources
-        .insert("okex".into(), Box::new(OkEx::default()));
+        .insert(okex::NAME.into(), Box::new(OkEx::default()));
     agg.data_sources
-        .insert("sushiswap".into(), Box::new(Sushiswap::default()));
+        .insert(sushiswap::NAME.into(), Box::new(Sushiswap::default()));
     agg
 }
 
@@ -89,6 +93,13 @@ impl Aggregator {
         }
         if total_volume < 1.0 {
             return Err(Box::new(AggError::NoEnoughVolumes(total_volume)));
+        }
+        {
+            let monitor_pairs = &mut self.s_state.lock().unwrap().exchange_pairs;
+            monitor_pairs.clear();
+            for p in all_pairs.clone() {
+                monitor_pairs.push(p.clone());
+            }
         }
         calc_weighted_price(all_pairs)
     }
@@ -143,10 +154,11 @@ fn calc_weighted_price(
 mod tests {
     use crate::fetcher::aggregator;
     use crate::flags;
+    use crate::processor::web::SharedState;
     #[tokio::test]
     async fn test_agg() {
         let cfg = flags::Config::new("./config/node.yaml").unwrap();
-        let agg = aggregator::new(cfg.mappings);
+        let agg = aggregator::new(cfg.mappings, SharedState::default());
         let weighted_price = agg.get_price().await.unwrap();
         println!("weighted price:{}", weighted_price);
     }

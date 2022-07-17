@@ -39,6 +39,8 @@ pub struct Pair {
 #[derive(Default, Clone)]
 pub struct Kucoin {}
 
+pub const NAME: &str = "kucoin";
+
 #[async_trait]
 impl Exchange for Kucoin {
     async fn get_pairs(
@@ -66,6 +68,7 @@ impl Exchange for Kucoin {
                 price: pair.buy.parse::<f64>()?,
                 volume: pair.vol.parse::<f64>()?,
                 timestamp: pair.time as u64,
+                exchange: NAME.into(),
             });
         }
         let result = expression::reduce_symbols(&symbols, &result);

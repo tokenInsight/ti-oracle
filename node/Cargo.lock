@@ -4758,6 +4758,7 @@ dependencies = [
  "serde_json",
  "strum_macros 0.22.0",
  "tokio",
+ "tower",
  "tower-http",
 ]
 
@@ -4880,6 +4881,7 @@ dependencies = [
  "pin-project 1.0.10",
  "pin-project-lite 0.2.9",
  "tokio",
+ "tokio-util",
  "tower-layer",
  "tower-service",
  "tracing",

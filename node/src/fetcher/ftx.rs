@@ -52,6 +52,8 @@ pub struct Pair {
 #[derive(Default)]
 pub struct Ftx {}
 
+pub const NAME: &str = "ftx";
+
 #[async_trait]
 impl Exchange for Ftx {
     async fn get_pairs(
@@ -73,6 +75,7 @@ impl Exchange for Ftx {
                     price: price,
                     volume: (pair.quote_volume24h / price),
                     timestamp: utils::timestamp() as u64,
+                    exchange: NAME.into(),
                 });
             }
         }

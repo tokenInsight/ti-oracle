@@ -5,9 +5,9 @@ use std::vec::Vec;
 #[derive(Deserialize, Clone)]
 pub struct Config {
     pub listen_address: String,
+    pub web_address: String,
     pub log_level: String,
     pub eth_rpc_url: String,
-    pub price_topic: String,
     pub contract_address: String,
     pub private_key: String,
     pub coin_name: String,

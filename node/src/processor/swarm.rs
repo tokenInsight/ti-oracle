@@ -20,7 +20,7 @@ pub async fn make_swarm(
     let local_peer_id = PeerId::from(local_key.public());
     println!("Local peer id: {:?}", local_peer_id);
     let transport = libp2p::development_transport(local_key.clone()).await?;
-    let topic = Topic::new(cfg.price_topic.clone());
+    let topic = Topic::new(cfg.coin_name.clone());
     let swarm = {
         // To content-address message, we can take the hash of message and use it as an ID.
         let message_id_fn = |message: &GossipsubMessage| {

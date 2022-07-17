@@ -1,6 +1,5 @@
 use clap::{app_from_crate, crate_authors, crate_description, crate_name, crate_version};
 use env_logger::{Builder, Env};
-use ethers::prelude::u256_from_f64_saturating;
 use ethers::prelude::Address;
 use ethers::prelude::Bytes;
 use ethers::prelude::U256;
@@ -23,10 +22,10 @@ use ti_node::processor::gossip::LocalCommand;
 use ti_node::processor::gossip::RefreshPrice;
 use ti_node::processor::swarm;
 use ti_node::processor::utils;
+use ti_node::processor::web;
 use tokio::time;
 use tokio::time::timeout;
 
-const CONTRACT_TIMEOUT: u64 = 5000;
 const COLLECT_RESPONSE_TIMEOUT: u64 = 5000;
 const COMMIT_TX_TIMEOUT: u64 = 30000;
 
@@ -96,6 +95,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
     let agg = aggregator::new(cfg.mappings.clone());
     let mut interval = time::interval(Duration::from_millis(cfg.feed_interval * 1000));
+    let web_addr = cfg.web_address.clone();
+    tokio::task::spawn(async move {
+        web::start(web_addr).await;
+    });
     loop {
         let price_result = agg.get_price().await;
         let weighted_price: u128;
@@ -104,7 +107,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 weighted_price = _weighted_price;
             }
             Err(err) => {
-                tokio::time::sleep(Duration::from_millis(CONTRACT_TIMEOUT)).await;
+                tokio::time::sleep(Duration::from_millis(eth::CONTRACT_TIMEOUT)).await;
                 warn!("get price from exchange fail; {}", err);
                 continue;
             }
@@ -133,7 +136,7 @@ async fn core_loop(
     v_bucket: &gossip::ValidationBucket,
 ) {
     let check_turn = timeout(
-        Duration::from_millis(CONTRACT_TIMEOUT),
+        Duration::from_millis(eth::CONTRACT_TIMEOUT),
         oracle_stub.is_my_turn().call(),
     )
     .await;
@@ -184,7 +187,7 @@ async fn collect_signatures(
     bucket: gossip::ValidationBucket,
     private_key: String,
 ) {
-    let feed_count = match get_feed_count(oracle_stub).await {
+    let feed_count = match eth::get_feed_count(oracle_stub).await {
         Some(value) => value,
         None => return,
     };
@@ -285,7 +288,7 @@ async fn collect_signatures(
     }
     match oracle_stub
         .feed_price(cfg.coin_name.clone(), peers_price)
-        .gas_price(from_gwei(cfg.fee_per_gas))
+        .gas_price(eth::from_gwei(cfg.fee_per_gas))
         .send()
         .await
     {
@@ -304,40 +307,4 @@ async fn collect_signatures(
             warn!("tx error: {}", err);
         }
     }
-}
-
-async fn get_feed_count(
-    oracle_stub: &eth::TIOracle<
-        ethers::prelude::SignerMiddleware<
-            ethers::prelude::Provider<ethers::prelude::Http>,
-            ethers::prelude::Wallet<ethers::prelude::k256::ecdsa::SigningKey>,
-        >,
-    >,
-) -> Option<U256> {
-    let feed_count: U256;
-    let feed_count_result = timeout(
-        Duration::from_millis(CONTRACT_TIMEOUT),
-        oracle_stub.feed_count().call(),
-    )
-    .await;
-    match feed_count_result {
-        Ok(feed_count_obj) => match feed_count_obj {
-            Ok(n) => {
-                feed_count = n;
-            }
-            Err(err) => {
-                warn!("contract error: {}", err);
-                return None;
-            }
-        },
-        Err(timeout_err) => {
-            warn!("get feed count err, {}", timeout_err);
-            return None;
-        }
-    }
-    Some(feed_count)
-}
-
-fn from_gwei(gwei: f64) -> U256 {
-    u256_from_f64_saturating(gwei * 1.0e9_f64)
 }

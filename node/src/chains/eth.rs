@@ -4,10 +4,14 @@ use log::warn;
 use std::error::Error;
 use std::str::FromStr;
 use std::{convert::TryFrom, sync::Arc};
+use tokio::time::timeout;
+use tokio::time::Duration;
 
 abigen!(TIOracle, "../contracts/out/TIOracle.sol/TIOracle.json");
 
 pub type OracleStub = TIOracle<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
+
+pub const CONTRACT_TIMEOUT: u64 = 5000;
 
 //keccak256(abi.encodePacked(coin,price,timestamp))
 pub fn get_hash(coin_name: String, price: U256, timestamp: U256) -> [u8; 32] {
@@ -72,6 +76,43 @@ pub async fn new(
     let hex_addr = contract_address.parse::<Address>()?;
     let oracle_stub = TIOracle::new(hex_addr, provider.clone());
     Ok(oracle_stub)
+}
+
+// get_feed_count get the how many times of feeding already committed
+pub async fn get_feed_count(
+    oracle_stub: &TIOracle<
+        ethers::prelude::SignerMiddleware<
+            ethers::prelude::Provider<ethers::prelude::Http>,
+            ethers::prelude::Wallet<ethers::prelude::k256::ecdsa::SigningKey>,
+        >,
+    >,
+) -> Option<U256> {
+    let feed_count: U256;
+    let feed_count_result = timeout(
+        Duration::from_millis(CONTRACT_TIMEOUT),
+        oracle_stub.feed_count().call(),
+    )
+    .await;
+    match feed_count_result {
+        Ok(feed_count_obj) => match feed_count_obj {
+            Ok(n) => {
+                feed_count = n;
+            }
+            Err(err) => {
+                warn!("contract error: {}", err);
+                return None;
+            }
+        },
+        Err(timeout_err) => {
+            warn!("get feed count err, {}", timeout_err);
+            return None;
+        }
+    }
+    Some(feed_count)
+}
+
+pub fn from_gwei(gwei: f64) -> U256 {
+    u256_from_f64_saturating(gwei * 1.0e9_f64)
 }
 
 #[cfg(test)]

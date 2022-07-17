@@ -1,14 +1,14 @@
 #p2p listen address, ${ip}/tcp/${port}, if port is zero, random port will be used
 listen_address : /ip4/0.0.0.0/tcp/0
 
+#web server addres
+web_address: 127.0.0.1:8080
+
 #log level, info/warn/debug, $RUST_LOG enviroment variable can be used too
 log_level: info
 
 #RPC URL of Ethereum chain
 eth_rpc_url: https://polygon-rpc.com
-
-#p2p message topic, use sperated topic for each coin price feeding
-price_topic: BITCOIN
 
 #smart contract address
 contract_address: 0xfcc442a562b6afa338fb7a55258da470853e1b23

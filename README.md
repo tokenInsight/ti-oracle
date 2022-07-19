@@ -15,6 +15,9 @@ We provide a solution to build up dedicated oracle networks, which are comprised
 - Oracle-node is used to build up a p2p network, in which all the nodes commit price data into blockchain in a round-robin way. They crawl trading pair's price from self specified exchanges and trading-pairs, and then aggragate the data to calculate out a price weighted by trading volumes.
 - Oracle-contract is used to store the price on blockchain, and also used to mantain the permitted node list for the dedicated oracle network.
 
+## Demo Site for one node
+https://ti-node.fly.dev/
+
 ## Architecture Overview
 ![image](https://user-images.githubusercontent.com/167837/177757017-bfc35f14-6d32-4f1d-8db9-5d1febab1baf.png)
 
@@ -88,15 +91,15 @@ node/src
 │   └── mod.rs
 ├── fetcher
 │   ├── aggregator.rs   # functions about weighted price calculating, and outliers detection
-│   ├── balancer.rs     # to be done
+│   ├── expression.rs   # caculate price by using operators lik div, mul
 │   ├── binance.rs      # fetching data from Binance
 │   ├── coinbase.rs     # fetching data from Coinbase
 │   ├── curve.rs        # to be done
 │   ├── ftx.rs          # fetching data from FTx
 │   ├── kucoin.rs       # fetching data from Kucoin
 │   ├── mod.rs
-│   ├── okex.rs         # to be done
-│   ├── uniswapv2.rs    # to be done
+│   ├── okex.rs         # fetching data from okex
+│   ├── uniswapv2.rs    # fetching data from uniswap v2
 │   └── uniswapv3.rs    # fetching data from uniswap v3
 ├── flags.rs            # command line flags & configuration options
 ├── lib.rs
@@ -111,40 +114,6 @@ node/src
 - firstly, install foundry: `curl -L https://foundry.paradigm.xyz | bash`
 - cd contract && forge test --gas-report
 
-```
-Running 5 tests for test/TIOracle.t.sol:ContractTest
-[PASS] testFeedPrice() (gas: 473089)
-[PASS] testKickNode() (gas: 273892)
-[PASS] testRemoveNode() (gas: 196083)
-[PASS] testRoundOwner() (gas: 206974)
-[PASS] testVerify() (gas: 12234)
-Test result: ok. 5 passed; 0 failed; finished in 6.83ms
-╭────────────────────────────────────┬─────────────────┬───────┬────────┬───────┬─────────╮
-│ src/TIOracle.sol:TIOracle contract ┆                 ┆       ┆        ┆       ┆         │
-╞════════════════════════════════════╪═════════════════╪═══════╪════════╪═══════╪═════════╡
-│ Deployment Cost                    ┆ Deployment Size ┆       ┆        ┆       ┆         │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
-│ 1156608                            ┆ 6102            ┆       ┆        ┆       ┆         │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
-│ Function Name                      ┆ min             ┆ avg   ┆ median ┆ max   ┆ # calls │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
-│ addNode                            ┆ 46262           ┆ 54228 ┆ 46262  ┆ 70162 ┆ 12      │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
-│ decideValidNode                    ┆ 1003            ┆ 1003  ┆ 1003   ┆ 1003  ┆ 72      │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
-│ feedPrice                          ┆ 4152            ┆ 33087 ┆ 22394  ┆ 93917 ┆ 7       │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
-│ isMyTurn                           ┆ 900             ┆ 1103  ┆ 900    ┆ 1511  ┆ 3       │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
-│ kickNode                           ┆ 23832           ┆ 31669 ┆ 25275  ┆ 45900 ┆ 3       │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
-│ queryPrice                         ┆ 735             ┆ 735   ┆ 735    ┆ 735   ┆ 1       │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
-│ recoverSign                        ┆ 4328            ┆ 4328  ┆ 4328   ┆ 4328  ┆ 1       │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
-│ removeNode                         ┆ 2992            ┆ 2992  ┆ 2992   ┆ 2992  ┆ 1       │
-╰────────────────────────────────────┴─────────────────┴───────┴────────┴───────┴─────────╯
-```
 ## Deploy smart contract
 
 - for example, we deploy a contract for Bitcoin price feeding
@@ -171,55 +140,61 @@ Test result: ok. 5 passed; 0 failed; finished in 6.83ms
   - `ti-node -c config/node.yaml`
   - explaining for the configuration file
 ```
-    #p2p listen address, ${ip}/tcp/${port}, if port is zero, random port will be used
-    listen_address : /ip4/0.0.0.0/tcp/0
+  #p2p listen address, ${ip}/tcp/${port}, if port is zero, random port will be used
+listen_address : /ip4/0.0.0.0/tcp/0
 
-    #log level, info/warn/debug, $RUST_LOG enviroment variable can be used too
-    log_level: info
+#web server addres
+web_address: 127.0.0.1:8080
 
-    #RPC URL of Ethereum chain
-    eth_rpc_url: https://polygon-rpc.com
+#log level, info/warn/debug, $RUST_LOG enviroment variable can be used too
+log_level: info
 
-    #p2p message topic, use sperated topic for each coin price feeding
-    price_topic: BITCOIN
+#RPC URL of Ethereum chain
+eth_rpc_url: https://polygon-rpc.com
 
-    #smart contract address
-    contract_address: 0xe1489011fac9506011fb8c089ee2dda1568607cb
+#smart contract address
+contract_address: 0xfaaa1887a03e4df74f129dc02fa638f4563b0d06
 
-    #coin name flag which should be same as the one specified in contract
-    coin_name: bitcoin
+#coin name flag which should be same as the one specified in contract
+coin_name: bitcoin
 
-    #enviroment variables contains wallet key
-    private_key: $NODE_PRIVATE_KEY
+#enviroment variables contains wallet key
+private_key: $NODE_PRIVATE_KEY
 
-    #the interval in seconds between twice pricing feeding
-    feed_interval: 60
+#the interval in seconds between twice pricing feeding
+feed_interval: 60
 
-    #suggested max fee per gas
-    fee_per_gas: 65
+#suggested max fee per gas
+fee_per_gas: 65
 
-    #trading pairs used from CEX & DEX to aggragate price
-    #trading pairs used of CEX & DEX to aggrate price
-    mappings:
-      binance:
-        - BTCUSDC
-        - BTCUSDT div USDCUSDT
-      coinbase:
-        - BTC-USD
-        - BTC-USDC
-      uniswapv3:
-        - 0x99ac8ca7087fa4a2a1fb6357269965a2014abc35 #WBTC-USDC
-        - 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed div 0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8 #WBTC-ETH div USDC-ETH
-      ftx:
-        - BTC/USD
-        - BTC/USDT mul USDT/USD
-      kucoin:
-        - BTC-USDT mul USDT-USDC
-        - BTC-USDC
-
-    #specify some bootstrap nodes, one for each line
-    peers:
-      - ""
+#trading pairs used of CEX & DEX to aggrate price
+mappings:
+  binance:
+    - BTCUSDC
+    - BTCUSDT div USDCUSDT
+  coinbase:
+    - BTC-USD
+    - BTC-USDT mul USDT-USD
+  uniswapv3:
+    - 0x99ac8ca7087fa4a2a1fb6357269965a2014abc35 #WBTC-USDC
+    - 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed div 0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8 #WBTC-ETH div USDC-ETH
+  uniswapv2:
+    - 0x004375dff511095cc5a197a54140a24efef3a416 #WBTC-USDC
+    - 0xbb2b8038a1640196fbe3e38816f3e67cba72d940 div 0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc #WBTC-ETH div USDC-ETH
+  ftx:
+    - BTC/USD
+    - BTC/USDT mul USDT/USD
+  kucoin:
+    - BTC-USDT mul USDT-USDC
+    - BTC-USDC
+  okex:
+    - BTC-USDC
+    - BTC-USDT div USDC-USDT
+  sushiswap:
+    - 0xceff51756c56ceffca006cd410b03ffc46dd3a58 div 0x397ff1542f962076d0bfe58ea045ffa2d347aca0 #wBTC-ETH div USDC-ETH
+#specify some bootstrap nodes, one for each line
+peers:
+  - ""
 ```
 when you start one node sucessfully, you will get the following logs on your terminal:
 
@@ -233,6 +208,6 @@ use `export RUST_LOG=debug`, if you want more tracing details.
 
 # Some Onchain Demo
 - Bitcoin Spot Price
-  - https://polygonscan.com/address/0x84e2e15c603fa7649a33106b52bc2081163e588e#readContract
+  - https://polygonscan.com/address/0xfaaa1887a03e4df74f129dc02fa638f4563b0d06#readContract
 - ETH Spot Price
   - TODO

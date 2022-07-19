@@ -138,13 +138,27 @@ pub async fn start_events_watch(
             Duration::from_millis(CONTRACT_TIMEOUT),
             client.get_block(BlockNumber::Latest),
         )
-        .await?;
+        .await;
         if try_get_block.is_err() {
             warn!("get last block err:{:?}", try_get_block);
             interval.tick().await;
             continue;
         }
-        let last_block = try_get_block.unwrap().unwrap().number.unwrap();
+        let last_block:U64;
+        match try_get_block.unwrap() {
+            Ok(try_get_block) => match try_get_block {
+                Some(try_get_block) => last_block = try_get_block.number.unwrap(),
+                None => {
+                    interval.tick().await;
+                    continue;
+                }
+            },
+            Err(err) => {
+                warn!("{:?}", err);
+                interval.tick().await;
+                continue;
+            }
+        }
         info!("last_block: {}", last_block);
         let try_get_events = timeout(
             Duration::from_millis(CONTRACT_TIMEOUT),

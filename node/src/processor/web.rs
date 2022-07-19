@@ -47,6 +47,14 @@ pub async fn start(web_addr: String, s_state: SharedState) {
             "/",
             get_service(ServeDir::new("./static")).handle_error(handle_error),
         )
+        .route(
+            "/pairs.html",
+            get_service(ServeDir::new("./static")).handle_error(handle_error),
+        )
+        .route(
+            "/events.html",
+            get_service(ServeDir::new("./static")).handle_error(handle_error),
+        )
         .route("/report", get(report))
         .route("/pairs", get(pairs))
         .route("/peers", get(peers))

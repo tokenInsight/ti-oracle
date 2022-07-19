@@ -16,6 +16,7 @@ abigen!(TIOracle, "../contracts/out/TIOracle.sol/TIOracle.json");
 pub type OracleStub = TIOracle<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 
 pub const CONTRACT_TIMEOUT: u64 = 5000;
+pub const MAX_HISTORY_EVENTS: usize = 1440;
 
 //keccak256(abi.encodePacked(coin,price,timestamp))
 pub fn get_hash(coin_name: String, price: U256, timestamp: U256) -> [u8; 32] {
@@ -182,7 +183,11 @@ pub async fn start_events_watch(
                                 chain_event.peers_report.push(peer_report);
                             }
                             info!("block: {}, event:{:?}", last_block.as_u64(), chain_event);
-                            s_state.lock().unwrap().chain_events.push(chain_event);
+                            let s_events = &mut s_state.lock().unwrap().chain_events;
+                            s_events.push(chain_event);
+                            if s_events.len() > MAX_HISTORY_EVENTS {
+                                s_events.remove(0); //remove oldest
+                            }
                         }
                     }
                 }

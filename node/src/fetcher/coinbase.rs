@@ -54,7 +54,7 @@ impl Exchange for Coinbase {
                 symbol: symbol.clone(),
                 price: pair.price.parse::<f64>()?,
                 volume: pair.volume.parse::<f64>()?,
-                timestamp: timestamp as u64,
+                timestamp: timestamp as u64 * 1000,
                 exchange: NAME.into(),
             });
         }

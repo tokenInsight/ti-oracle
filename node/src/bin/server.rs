@@ -123,6 +123,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await
         {
             warn!("event watcher error: {:?}", error);
+            panic!("halt");
         }
     });
     loop {

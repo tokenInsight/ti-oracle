@@ -134,19 +134,33 @@ pub async fn start_events_watch(
     let mut seen: BTreeMap<u64, bool> = BTreeMap::new();
     let mut interval = time::interval(Duration::from_millis(2000));
     loop {
-        let last_block = client
-            .get_block(BlockNumber::Latest)
-            .await?
-            .unwrap()
-            .number
-            .unwrap();
-        debug!("last_block: {}", last_block);
-        let events = oracle_stub
-            .events()
-            .from_block(last_block.as_u64() - 3)
-            .to_block(last_block.as_u64())
-            .query()
-            .await;
+        let try_get_block = timeout(
+            Duration::from_millis(CONTRACT_TIMEOUT),
+            client.get_block(BlockNumber::Latest),
+        )
+        .await?;
+        if try_get_block.is_err() {
+            warn!("get last block err:{:?}", try_get_block);
+            interval.tick().await;
+            continue;
+        }
+        let last_block = try_get_block.unwrap().unwrap().number.unwrap();
+        info!("last_block: {}", last_block);
+        let try_get_events = timeout(
+            Duration::from_millis(CONTRACT_TIMEOUT),
+            oracle_stub
+                .events()
+                .from_block(last_block.as_u64() - 3)
+                .to_block(last_block.as_u64())
+                .query(),
+        )
+        .await;
+        if try_get_events.is_err() {
+            warn!("get events err: {:?}", try_get_events);
+            interval.tick().await;
+            continue;
+        }
+        let events = try_get_events.unwrap();
         debug!("{:?}", events);
         match events {
             Ok(event_data) => {

@@ -16,6 +16,7 @@ use tower_http::services::ServeDir;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct ChainEvent {
+    pub coin_name: String,
     pub round: u64,
     pub feed_count: u64,
     pub peers_report: Vec<PeerReport>,

@@ -124,6 +124,7 @@ pub async fn start_events_watch(
     eth_rpc_url: String,
     contract_address: String,
     s_state: SharedState,
+    coin_name: String,
 ) -> Result<()> {
     let client = Provider::<Http>::try_from(eth_rpc_url)?;
     let client = Arc::new(client);
@@ -141,7 +142,7 @@ pub async fn start_events_watch(
         debug!("last_block: {}", last_block);
         let events = oracle_stub
             .events()
-            .from_block(last_block.as_u64() - 1)
+            .from_block(last_block.as_u64() - 3)
             .to_block(last_block.as_u64())
             .query()
             .await;
@@ -169,6 +170,7 @@ pub async fn start_events_watch(
                             let mut chain_event = ChainEvent::default();
                             chain_event.round = feed_event.round.as_u64();
                             chain_event.feed_count = feed_event.feed_count.as_u64();
+                            chain_event.coin_name = coin_name.clone();
                             for peer_event in feed_event.info {
                                 let (signer_addr, sig, sign_price, sign_ts) = peer_event;
                                 let peer_report = PeerReport {

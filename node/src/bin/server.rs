@@ -112,8 +112,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let eth_rpc_url = cfg.eth_rpc_url.clone();
     let contract_addr = cfg.contract_address.clone();
     let copy_s_state = Arc::clone(&s_state);
+    let coin_name = cfg.coin_name.clone();
     tokio::task::spawn(async move {
-        if let Err(error) = eth::start_events_watch(eth_rpc_url, contract_addr, copy_s_state).await
+        if let Err(error) = eth::start_events_watch(
+            eth_rpc_url,
+            contract_addr,
+            copy_s_state,
+            coin_name,
+        )
+        .await
         {
             warn!("event watcher error: {:?}", error);
         }

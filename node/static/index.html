@@ -38,12 +38,16 @@
                 for(i=0;i<N;i++) {
                     chain_event = result[i];
                     //console.log(chain_event);
-                    $('#info').text("Coin:"+chain_event.coin_name + "; Round:" + chain_event.round + "; Count:" + chain_event.feed_count);
+                    if (i==N-1) {
+                        $('#info').text("Coin:"+chain_event.coin_name + "; Round:" + chain_event.round + "; Count:" + chain_event.feed_count);
+                    }
                     date.push(chain_event.feed_count);
                     var m = Math.floor(chain_event.peers_report.length/2);
                     var price = chain_event.peers_report[m].price/1e8;
                     var ts = new Date(chain_event.peers_report[m].timestamp*1000)
-                    $("#price").text("price:" + price.toFixed(2) + "; time:" + ts);
+                    if (i==N-1) {
+                        $("#price").text("Price:" + price.toFixed(2) + "; Time:" + ts);
+                    }
                     data.push(price.toFixed(2));
                     if(shift) {
                         date.shift();
@@ -104,7 +108,7 @@
                 }
                 ]
             });
-        }, 500);
+        }, 15000);
 
         if (option && typeof option === 'object') {
           myChart.setOption(option);

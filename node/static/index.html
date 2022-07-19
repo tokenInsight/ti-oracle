@@ -95,6 +95,20 @@
             ]
         };
         addData(false);
+        setTimeout(function () {
+            addData(true);
+            myChart.setOption({
+                xAxis: {
+                data: date
+                },
+                series: [
+                {
+                    name: 'price',
+                    data: data
+                }
+                ]
+            });
+        }, 500);
         setInterval(function () {
             addData(true);
             myChart.setOption({

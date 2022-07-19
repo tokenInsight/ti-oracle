@@ -114,13 +114,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let copy_s_state = Arc::clone(&s_state);
     let coin_name = cfg.coin_name.clone();
     tokio::task::spawn(async move {
-        if let Err(error) = eth::start_events_watch(
-            eth_rpc_url,
-            contract_addr,
-            copy_s_state,
-            coin_name,
-        )
-        .await
+        if let Err(error) =
+            eth::start_events_watch(eth_rpc_url, contract_addr, copy_s_state, coin_name).await
         {
             warn!("event watcher error: {:?}", error);
             panic!("halt");
@@ -308,18 +303,18 @@ async fn collect_signatures(
         }
     }
     //prepare self sign
-    let ts = utils::timestamp();
+    let ts_seconds = utils::timestamp() / 1000;
     let (mysig, myaddr) = eth::sign_price_info(
         private_key.clone(),
         cfg.coin_name.clone(),
         weighted_price,
-        ts,
+        ts_seconds,
     );
     let my_price_feed = PeerPriceFeed {
         peer_address: Address::from_str(myaddr.as_str()).unwrap(),
         sig: Bytes::from_str(mysig.as_str()).unwrap(),
         price: U256::from(weighted_price),
-        timestamp: U256::from(ts),
+        timestamp: U256::from(ts_seconds),
     };
     peers_price.push(my_price_feed);
     peers_price.sort_by_key(|d| d.price);

@@ -178,11 +178,12 @@ impl P2PMessageProcessor {
         } else {
             info!("price check: {} vs {}", price_local, price);
         }
+        let ts_seconds = utils::timestamp() / 1000;
         let (sig, signer_address) = eth::sign_price_info(
             cfg.private_key.clone(),
             valid_req.coin.clone(),
             price_local,
-            valid_req.timestamp,
+            ts_seconds,
         );
         debug!("sig:{}", sig);
         let sig_response = CommandMessage::VResp(ValidateResponse {
@@ -190,7 +191,7 @@ impl P2PMessageProcessor {
             price: price_local.to_string(),
             feed_count: valid_req.feed_count,
             sig: sig,
-            timestamp: valid_req.timestamp,
+            timestamp: ts_seconds,
             address: signer_address,
         });
         let sig_json = serde_json::to_string(&sig_response).unwrap();

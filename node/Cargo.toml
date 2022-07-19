@@ -10,7 +10,7 @@ name = "ti-node"
 path = "src/bin/server.rs"
 
 [dependencies]
-libp2p = { version = "0.46.1",features = ["gossipsub"]}
+libp2p = { version = "0.44",features = ["gossipsub"]}
 futures = "0.3.1"
 futures-timer = "3.0.2"
 lazy_static = "1.2"
@@ -28,7 +28,6 @@ tokio-tungstenite = { version = "0.17", features = ["native-tls"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 ethers = { git = "https://github.com/gakonst/ethers-rs", branch="master", features=["ws"]}
 reqwest = { version = "0.11.11", features= ["gzip"] }
-strum_macros = "0.22"
 chrono = "0.4"
 log = "0.4.0"
 axum = "0.5.13"

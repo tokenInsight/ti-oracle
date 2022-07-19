@@ -9,6 +9,7 @@ use libp2p::gossipsub::GossipsubEvent;
 use libp2p::gossipsub::IdentTopic;
 use libp2p::gossipsub::MessageId;
 use libp2p::swarm::SwarmEvent;
+use libp2p::Multiaddr;
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -104,6 +105,17 @@ impl P2PMessageProcessor {
                             debug!("local command {:}", data);
                             if let Err(e) = self.publish_txt(data) {
                                 warn!("Publish feed request error:{:?}", e);
+                                //try reconnect
+                                for peer_node in &cfg.peers {
+                                    if peer_node.len() == 0 {
+                                        continue;
+                                    }
+                                    let address: Multiaddr = peer_node.parse().expect("User to provide valid address.");
+                                    match self.swarm.dial(address.clone()) {
+                                        Ok(_) => info!("Dialed {:?}", address),
+                                        Err(e) => warn!("Dial {:?} failed: {:?}", address, e),
+                                    };
+                                }
                             }
                         },
                         LocalCommand::RefreshReq(refresh_req) => {

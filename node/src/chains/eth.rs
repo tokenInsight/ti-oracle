@@ -144,7 +144,7 @@ pub async fn start_events_watch(
             interval.tick().await;
             continue;
         }
-        let last_block:U64;
+        let last_block: U64;
         match try_get_block.unwrap() {
             Ok(try_get_block) => match try_get_block {
                 Some(try_get_block) => last_block = try_get_block.number.unwrap(),

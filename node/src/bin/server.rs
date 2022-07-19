@@ -109,6 +109,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tokio::task::spawn(async move {
         web::start(web_addr, copy_s_state).await;
     });
+    let eth_rpc_url = cfg.eth_rpc_url.clone();
+    let contract_addr = cfg.contract_address.clone();
+    let copy_s_state = Arc::clone(&s_state);
+    tokio::task::spawn(async move {
+        if let Err(error) = eth::start_events_watch(eth_rpc_url, contract_addr, copy_s_state).await
+        {
+            warn!("event watcher error: {:?}", error);
+        }
+    });
     loop {
         let price_result = agg.get_price().await;
         let weighted_price: u128;

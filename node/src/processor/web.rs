@@ -7,18 +7,36 @@ use axum::{
     Extension, Json, Router,
 };
 use log::info;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use std::{io, net::SocketAddr};
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct ChainEvent {
+    pub round: u64,
+    pub feed_count: u64,
+    pub peers_report: Vec<PeerReport>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct PeerReport {
+    pub price: u128,
+    pub sig: String,
+    pub timestamp: u64,
+    pub address: String,
+}
+
 #[derive(Default)]
 pub struct SharedStateData {
     pub peers_report: BTreeMap<u64, Vec<ValidateResponse>>,
     pub exchange_pairs: Vec<PairInfo>,
     pub peers: BTreeMap<String, u64>, //peer, timestamp
+    pub chain_events: Vec<ChainEvent>,
 }
+
 pub type SharedState = Arc<Mutex<SharedStateData>>;
 
 pub async fn start(web_addr: String, s_state: SharedState) {
@@ -31,6 +49,7 @@ pub async fn start(web_addr: String, s_state: SharedState) {
         .route("/report", get(report))
         .route("/pairs", get(pairs))
         .route("/peers", get(peers))
+        .route("/events", get(events))
         .layer(ServiceBuilder::new().layer(Extension(s_state)).into_inner());
     let addr: SocketAddr = web_addr
         .parse()
@@ -55,6 +74,11 @@ async fn pairs(Extension(state): Extension<SharedState>) -> impl IntoResponse {
 async fn peers(Extension(state): Extension<SharedState>) -> impl IntoResponse {
     let peers = state.lock().unwrap().peers.clone();
     (StatusCode::ACCEPTED, Json(peers))
+}
+
+async fn events(Extension(state): Extension<SharedState>) -> impl IntoResponse {
+    let events = state.lock().unwrap().chain_events.clone();
+    (StatusCode::ACCEPTED, Json(events))
 }
 
 async fn handle_error(_err: io::Error) -> impl IntoResponse {

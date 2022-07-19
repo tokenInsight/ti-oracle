@@ -1,11 +1,15 @@
 use ethers::prelude::{k256::ecdsa::SigningKey, *};
 use eyre::Result;
-use log::warn;
+use log::{debug, info, warn};
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::str::FromStr;
 use std::{convert::TryFrom, sync::Arc};
+use tokio::time;
 use tokio::time::timeout;
 use tokio::time::Duration;
+
+use crate::processor::web::{ChainEvent, PeerReport, SharedState};
 
 abigen!(TIOracle, "../contracts/out/TIOracle.sol/TIOracle.json");
 
@@ -113,6 +117,80 @@ pub async fn get_feed_count(
 
 pub fn from_gwei(gwei: f64) -> U256 {
     u256_from_f64_saturating(gwei * 1.0e9_f64)
+}
+
+//scan blockchain to watch events
+pub async fn start_events_watch(
+    eth_rpc_url: String,
+    contract_address: String,
+    s_state: SharedState,
+) -> Result<()> {
+    let client = Provider::<Http>::try_from(eth_rpc_url)?;
+    let client = Arc::new(client);
+    let hex_addr = contract_address.parse::<Address>()?;
+    let oracle_stub = TIOracle::new(hex_addr, client.clone());
+    let mut seen: BTreeMap<u64, bool> = BTreeMap::new();
+    let mut interval = time::interval(Duration::from_millis(2000));
+    loop {
+        let last_block = client
+            .get_block(BlockNumber::Latest)
+            .await?
+            .unwrap()
+            .number
+            .unwrap();
+        debug!("last_block: {}", last_block);
+        let events = oracle_stub
+            .events()
+            .from_block(last_block.as_u64() - 1)
+            .to_block(last_block.as_u64())
+            .query()
+            .await;
+        debug!("{:?}", events);
+        match events {
+            Ok(event_data) => {
+                let event_data: Vec<TIOracleEvents> = event_data;
+                for event in event_data {
+                    match event {
+                        TIOracleEvents::NodeAddedFilter(add_event) => {
+                            debug!("{:?}", add_event);
+                        }
+                        TIOracleEvents::NodeKickedFilter(kick_event) => {
+                            debug!("{:?}", kick_event);
+                        }
+                        TIOracleEvents::NodeRemovedFilter(remove_event) => {
+                            debug!("{:?}", remove_event);
+                        }
+                        TIOracleEvents::PriceFeedFilter(feed_event) => {
+                            let feed_count = feed_event.feed_count.as_u64();
+                            if seen.contains_key(&feed_count) {
+                                continue;
+                            }
+                            seen.insert(feed_count, true);
+                            let mut chain_event = ChainEvent::default();
+                            chain_event.round = feed_event.round.as_u64();
+                            chain_event.feed_count = feed_event.feed_count.as_u64();
+                            for peer_event in feed_event.info {
+                                let (signer_addr, sig, sign_price, sign_ts) = peer_event;
+                                let peer_report = PeerReport {
+                                    price: sign_price.as_u128(),
+                                    sig: hex::encode(sig),
+                                    timestamp: sign_ts.as_u64(),
+                                    address: format!("{:?}", signer_addr),
+                                };
+                                chain_event.peers_report.push(peer_report);
+                            }
+                            info!("block: {}, event:{:?}", last_block.as_u64(), chain_event);
+                            s_state.lock().unwrap().chain_events.push(chain_event);
+                        }
+                    }
+                }
+            }
+            Err(err) => {
+                warn!("event error: {:?}", err);
+            }
+        }
+        interval.tick().await;
+    }
 }
 
 #[cfg(test)]

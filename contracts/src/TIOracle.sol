@@ -21,7 +21,7 @@ contract TIOracle {
     event NodeAdded(address newNode);
     event NodeRemoved(address removedNode);
     event NodeKicked(address removedNode);
-    event PriceFeed(uint256 round, PriceInfo info);
+    event PriceFeed(uint256 round, uint256 feedCount, PeerPriceFeed[] info);
     // Coin name
     string public coin;
     // last updated price, with timestamp
@@ -151,7 +151,7 @@ contract TIOracle {
         priceInfo.timestamp = block.timestamp;
         //console.log("timestamp", block.timestamp);
         lastPrice = priceInfo;
-        emit PriceFeed(lastRound, priceInfo);
+        emit PriceFeed(lastRound, feedCount, peersPrice);
         ++feedCount;
         if (feedCount % countPerRound == 0) {
             ++lastRound; //next round

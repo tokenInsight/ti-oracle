@@ -11,7 +11,7 @@ log_level: info
 eth_rpc_url: https://polygon-rpc.com
 
 #smart contract address
-contract_address: 0xfcc442a562b6afa338fb7a55258da470853e1b23
+contract_address: 0xfaaa1887a03e4df74f129dc02fa638f4563b0d06
 
 #coin name flag which should be same as the one specified in contract
 coin_name: bitcoin

@@ -15,6 +15,7 @@
     <div id="wrapper"></div>
     <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
     <script>
+        $(document).ready(function(){
         $.get("/pairs", function(result) {
             new gridjs.Grid({
                 columns: ["exchange","symbol", "price", "volume", "timestamp"],
@@ -23,6 +24,7 @@
                 data: result
             }).render(document.getElementById("wrapper"));
         });
+    })
     </script>
   </body>
 </html>

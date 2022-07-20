@@ -26,6 +26,7 @@
     <div id="container_pairs"></div>
     <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
     <script type="text/javascript">
+        $(document).ready(function(){
         var dom = document.getElementById('container');
         var myChart = echarts.init(dom, null, {
           renderer: 'canvas',
@@ -139,6 +140,7 @@
                 data: result
             }).render(document.getElementById("container_pairs"));
         });
+        })
       </script>
 </body>
 

@@ -15,6 +15,7 @@
     <div id="wrapper"></div>
     <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
     <script>
+        $(document).ready(function(){
         $.get("/events", function(result) {
             var plain_result = [];
             for (i=0;i<result.length;i++) {
@@ -38,6 +39,7 @@
                 data: plain_result
             }).render(document.getElementById("wrapper"));
         });
+    })
     </script>
   </body>
 </html>

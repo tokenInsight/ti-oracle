@@ -94,6 +94,7 @@ impl P2PMessageProcessor {
     pub async fn process_p2p_message(&mut self, cfg: Config) {
         // for debug usage
         let mut stdin = io::BufReader::new(io::stdin()).lines().fuse();
+        let self_eth_address = eth::pk_to_address(cfg.private_key.clone());
         // Kick it off
         loop {
             select! {
@@ -160,7 +161,7 @@ impl P2PMessageProcessor {
                                     }
                                     let round_collection = v_bucket.get_mut(&valid_resps.feed_count).unwrap();
                                     let check_dup = round_collection.iter().find(|x| x.address == valid_resps.address);
-                                    if check_dup.is_none() {
+                                    if check_dup.is_none() && valid_resps.address != self_eth_address {
                                         round_collection.push(valid_resps);
                                     }
                                     //info!("p2p bucket size:{}", v_bucket.len());

@@ -28,6 +28,10 @@ pub fn get_hash(coin_name: String, price: U256, timestamp: U256) -> [u8; 32] {
     ethers::utils::keccak256(packed.as_slice())
 }
 
+pub fn pk_to_address(pk: String) -> String {
+    let pk = pk.parse::<LocalWallet>().unwrap();
+    return format!("{:?}", pk.address());
+}
 // sign price feeding then return signature  and address
 pub fn sign_price_info(
     private_key: String,

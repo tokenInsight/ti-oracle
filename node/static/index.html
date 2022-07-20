@@ -2,13 +2,14 @@
     <head>
         <script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
         <script src="https://fastly.jsdelivr.net/npm/jquery@2.2.4/dist/jquery.min.js"></script>
+        <link
+        href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css"
+        rel="stylesheet"
+      />
     </head>
 <body>
     <h1>TI Oracle Node</h1>
     <ul>
-        <li>
-            <a href="/pairs.html">Trading Pairs</a>
-        </li>
         <li>
             <a href="/events.html">OnChain Events</a>
         </li>
@@ -21,7 +22,9 @@
         <div id="info"></div>
         <div id="price"></div>
     </div>
-    <div id="container" style="height: 60%; width: 85%;"></div>
+    <div id="container" style="height: 45%; width: 85%;"></div>
+    <div id="container_pairs"></div>
+    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
     <script type="text/javascript">
         var dom = document.getElementById('container');
         var myChart = echarts.init(dom, null, {
@@ -95,6 +98,10 @@
             ]
         };
         addData(false);
+        if (option && typeof option === 'object') {
+          myChart.setOption(option);
+        }
+
         setTimeout(function () {
             addData(true);
             myChart.setOption({
@@ -122,13 +129,16 @@
                 }
                 ]
             });
-        }, 15000);
-
-        if (option && typeof option === 'object') {
-          myChart.setOption(option);
-        }
-
+        }, 5000);
         window.addEventListener('resize', myChart.resize);
+        $.get("/pairs", function(result) {
+            new gridjs.Grid({
+                columns: ["exchange","symbol", "price", "volume", "timestamp"],
+                search: true,
+                sort: true,
+                data: result
+            }).render(document.getElementById("container_pairs"));
+        });
       </script>
 </body>
 

@@ -34,8 +34,11 @@
                 plain_result.push(obj);
             }
             new gridjs.Grid({
-                columns: ["coin_name","round", "feed_count", "peers_report"],
+                columns: ["coin_name",{"name":"round","width":120}, {"name":"feed_count","width":180}, "peers_report"],
                 sort: true,
+                fixedHeader: true,
+                fixedHeader: true,
+                height: '400px',
                 data: plain_result
             }).render(document.getElementById("wrapper"));
         });

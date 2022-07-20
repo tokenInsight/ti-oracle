@@ -1,7 +1,7 @@
 <html>
     <head>
-        <script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-        <script src="https://fastly.jsdelivr.net/npm/jquery@2.2.4/dist/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.3/echarts.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
         <link
         href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css"
         rel="stylesheet"
@@ -15,6 +15,9 @@
         </li>
         <li>
             <a target="_blank" href="https://polygonscan.com/address/0xfaaa1887a03e4df74f129dc02fa638f4563b0d06#readContract">Smart Contract</a>
+        </li>
+        <li>
+            Github: https://github.com/tokeninsight
         </li>
     </ul>
     <hr/>
@@ -137,6 +140,8 @@
                 columns: ["exchange","symbol", "price", "volume", "timestamp"],
                 search: true,
                 sort: true,
+                fixedHeader: true,
+                height: '400px',
                 data: result
             }).render(document.getElementById("container_pairs"));
         });

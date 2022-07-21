@@ -86,7 +86,8 @@ async fn peers(Extension(state): Extension<SharedState>) -> impl IntoResponse {
 }
 
 async fn events(Extension(state): Extension<SharedState>) -> impl IntoResponse {
-    let events = state.lock().unwrap().chain_events.clone();
+    let mut events = state.lock().unwrap().chain_events.clone();
+    events.reverse(); //show latest events first
     (StatusCode::ACCEPTED, Json(events))
 }
 

@@ -133,7 +133,7 @@
                 }
                 ]
             });
-        }, 5000);
+        }, 1500);
         window.addEventListener('resize', myChart.resize);
         $.get("/pairs", function(result) {
             new gridjs.Grid({
@@ -141,7 +141,7 @@
                 search: true,
                 sort: true,
                 fixedHeader: true,
-                height: '400px',
+                height: '600px',
                 data: result
             }).render(document.getElementById("container_pairs"));
         });

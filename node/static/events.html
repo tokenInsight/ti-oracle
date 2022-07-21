@@ -18,7 +18,7 @@
         $(document).ready(function(){
         $.get("/events", function(result) {
             var plain_result = [];
-            for (i=0;i<result.length;i++) {
+            for (i=result.length-1;i>=0;i--) {
                 obj = result[i];
                 var pr = obj["peers_report"];
                 var less_pr_list = [];

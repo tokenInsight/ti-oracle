@@ -2,6 +2,7 @@
     <head>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.3/echarts.min.js"></script>
         <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
         <link
         href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css"
         rel="stylesheet"
@@ -27,7 +28,6 @@
     </div>
     <div id="container" style="height: 45%; width: 85%;"></div>
     <div id="container_pairs"></div>
-    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
     <script type="text/javascript">
         $(document).ready(function(){
         var dom = document.getElementById('container');
@@ -39,6 +39,10 @@
         var option;
         var date = [];
         var data = [];
+        function padzero(n) {
+            console.log(n)
+            return String(n).padStart(2, '0');
+        }
         function addData(shift) {
             $.get("/events", function (result){
                 N = result.length;
@@ -48,10 +52,11 @@
                     if (i==N-1) {
                         $('#info').text("Coin:"+chain_event.coin_name + "; Round:" + chain_event.round + "; Count:" + chain_event.feed_count);
                     }
-                    date.push(chain_event.feed_count);
                     var m = Math.floor(chain_event.peers_report.length/2);
                     var price = chain_event.peers_report[m].price/1e8;
                     var ts = new Date(chain_event.peers_report[m].timestamp*1000)
+                    date.push((ts.getMonth()+1) + "-" + ts.getDate() + " " + (ts.getHours()) + ":" + padzero(ts.getMinutes()));
+                    //date.push(ts);
                     if (i==N-1) {
                         $("#price").text("Price:" + price.toFixed(2) + "; Time:" + ts);
                     }

@@ -20,7 +20,7 @@ We provide a solution to build up dedicated oracle networks, which are comprised
 - https://ti-node2.fly.dev/
 
 ## Architecture Overview
-![image](https://user-images.githubusercontent.com/167837/177757017-bfc35f14-6d32-4f1d-8db9-5d1febab1baf.png)
+![image](https://user-images.githubusercontent.com/167837/182802774-0d0883c0-cc52-4aee-8457-5a9546eb9149.png)
 
 ## Concatenation Calculation Expression of trading-pairs
 - in order to support caculate the price by using trading-paris with different quote, concatenation expression is used

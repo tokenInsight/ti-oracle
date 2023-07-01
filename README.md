@@ -15,9 +15,6 @@ We provide a solution to build up dedicated oracle networks, which are comprised
 - Oracle-node is used to build up a p2p network, in which all the nodes commit price data into blockchain in a round-robin way. They crawl trading pair's price from self specified exchanges and trading-pairs, and then aggragate the data to calculate out a price weighted by trading volumes.
 - Oracle-contract is used to store the price on blockchain, and also used to mantain the permitted node list for the dedicated oracle network.
 
-## Demo networks with two nodes
-- https://ti-node.fly.dev/
-- https://ti-node2.fly.dev/
 
 ## Architecture Overview
 ![image](https://user-images.githubusercontent.com/167837/182803822-4db47f2d-3514-40b7-ba99-0735111ed7bb.png)
@@ -37,7 +34,7 @@ The leader node does the following tasks:
 - verify the signatures in the message sent from other nodes
 - check the diffrence between price observed by other nodes and local, and reject the data with large difference
 - remove the price data recognized to be outliers
-  - outliers detection details: https://github.com/tokenInsight/ti-oracle/blob/main/node/src/fetcher/aggregator.rs#L88
+  - outliers detection details: https://github.com/tokenInsight/ti-oracle/blob/main/node/src/fetcher/aggregator.rs#L108
 - caculate the price weighted by the trading volumes
 
 Suppose we maintain a counter for how many times have feeded from the begining of contract deployed, as a variable `N`.
